@@ -1,0 +1,15 @@
+name: 2025-baker-ellipsoids
+channels:
+  - conda-forge
+dependencies:
+  - python
+  # IPython and Jupyter
+  - ipython
+  - jupyter
+  - jupyterlab
+  # Linters and testing
+  - ruff
+  - pytest
+  # Scientific stack
+  - numpy
+  - scipy
