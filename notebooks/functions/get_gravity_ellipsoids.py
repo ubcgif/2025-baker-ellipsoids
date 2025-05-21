@@ -1,3 +1,6 @@
+import numpy as np 
+from scipy.special import ellipkinc, ellipeinc 
+
 def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
     
     """
