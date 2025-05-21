@@ -1,0 +1,3 @@
+from .get_lambda import calculate_lambda
+from .get_gravity_ellipsoids import calculate_delta_gs_oblate, calculate_delta_gs_prolate, calculate_delta_gs_triaxial
+ 
