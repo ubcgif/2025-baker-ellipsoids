@@ -1,5 +1,7 @@
 import numpy as np 
 from scipy.special import ellipkinc, ellipeinc 
+import verde as vd 
+from .get_lambda import calculate_lambda
 
 def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
     
@@ -166,3 +168,57 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxe
     dg3 = co_eff * z * C_lmbda
     
     return dg1, dg2, dg3
+
+def calc_gz_array(func, spacing, region, height, a, b, c, density):
+    
+    """Function to call one of the gz functions,
+    and use it for an array of coordinates.
+    
+    Parameters
+    ----------
+    func (function): the function for the desired ellipsoid (triaxial, prolate or oblate)
+    spacing (float, tuple)): grid spacing. 1 value means equal in all directions. 
+                            tuple = (spacing_north, spacing_east)
+                            
+    region (list): [W, E, S, N] for the boundaries in each direction.
+    height (float): the z-plane to produce the 2D slice. 
+                    NOTE: if plane disects the ellipsoid, the internal values will 
+                    be retruned as NaNs.
+    a, b, c (floats): semiaxes lengths of the ellipsoid. 
+                    NOTE: these must comply with chosen ellipsoid type.
+    density (float): uniform density of the ellipsoid.
+                    
+                    
+    Returns 
+    -------
+    easting (array): the easting value of each point on the coordinate grid.
+    northing (array): the northing value of each point on the cooridnate grid.
+    gz (array) : a value of gz for each point on the coordinate grid.
+    
+    
+    TO DO:
+    
+    return all g components?
+    
+    """
+  
+
+    # set the coord points
+    easting, northing, elv = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=5)
+    gz_2d = np.empty_like(easting)
+
+    # check the function runs and that the correct a, b, c ratio has been given for chosen function
+    func(easting[0, 0], northing[0, 0], elv[0, 0], a, b, c, density)
+
+    # loop over coordinate points 
+    # bit concerned about how clunky this is?
+    for i in range(easting.shape[0]):
+        for j in range(easting.shape[1]):
+            try:
+                _, _, gz = func(easting[i, j], northing[i, j], elv[i, j], a, b, c, density)
+                gz_2d[i, j] = gz
+            except ValueError: # give nan values when ValueError thrown in the ellips. function
+                gz_2d[i, j] = np.nan 
+                
+    return easting, northing, gz_2d
+

@@ -1,4 +1,5 @@
 import numpy as np 
+import verde as vd
 
 def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordinates
     
