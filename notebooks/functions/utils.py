@@ -28,7 +28,7 @@ def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordin
             f"Location (x, y, z) should lie on or outside of semiaxes (a, b, c), "
             f"but got x = {x}, y = {y}, z = {z}, and a = {a}, b = {b}, c = {c}")
 
-    p_0 = a**2 * b**2 * c**2 - b**2 * c**2 * x**2 - a**2 * b**2 * z**2
+    p_0 = a**2 * b**2 * c**2 - b**2 * c**2 * x**2 - c**2 * a**2 * y**2 - a**2 * b**2 * z**2
     p_1 = a**2 * b**2 + b**2 * c**2 + c**2 * a**2 - (b**2 + c**2) * x**2 - (c**2 + a**2) * y**2 - (a**2 + b**2) * z**2
     p_2 = a**2 + b**2 + c**2 - x**2 - y**2 - z**2
 
