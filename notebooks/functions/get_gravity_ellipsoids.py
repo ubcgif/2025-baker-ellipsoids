@@ -1,4 +1,4 @@
-from functions.utils import calculate_lambda
+from .utils import calculate_lambda
 import numpy as np 
 from scipy.special import ellipkinc, ellipeinc 
 import verde as vd 
