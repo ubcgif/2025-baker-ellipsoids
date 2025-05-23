@@ -1,7 +1,8 @@
+from functions.utils import calculate_lambda
 import numpy as np 
 from scipy.special import ellipkinc, ellipeinc 
 import verde as vd 
-from .get_lambda import calculate_lambda
+
 
 def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
     
