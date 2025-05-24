@@ -1,8 +1,67 @@
-from .utils import calculate_lambda
+from .utils import calculate_lambda, get_coords_and_mask
 import numpy as np 
 from scipy.special import ellipkinc, ellipeinc 
 import verde as vd 
 
+def get_ABC(x, y, z, a, b, c, lmbda):
+    """
+    Calculate the A(lmbda), B(lmbda), C(lmbda) functions using elliptic 
+    integrals as given in Clark et al (1986) and Takenhasi et al (2018).
+    
+    Parameters
+    ----------
+    x, y, z (array, integer): Observation coordinates (2D or 1D)
+    a, b, c (floats): semiaxes lengths of the ellipsoid. 
+                    NOTE: these must comply with chosen ellipsoid type.
+    lmbda (integer, array): the value/s of lambda associated with the confocal
+                            surfaces of the defined ellipsoid.
+                            
+    """
+    
+    # compute the k and theta terms for the elliptic integrals
+    k = np.sqrt((a**2 - b**2)/(a**2 - c**2))
+    theta_prime = np.arcsin(np.sqrt((a**2 - c**2)/(a**2 + lmbda))) # for theta in range (0 =< theta =< np.pi/2) - check how to code this??
+
+    
+    # compute terms associated with A(lambda) 
+    A_coeff = 2/((a**2 - b**2)*np.sqrt(a**2 - c**2))
+    A_elliptic_integral = ellipkinc(theta_prime, k)  - ellipeinc(theta_prime, k)
+    A_lmbda = A_coeff * A_elliptic_integral
+
+
+    # compute terms associated with B(lambda) 
+    B_coeff = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
+    B_fk_coeff = ((b**2 - c**2)/(a**2 - c**2))
+    B_fk_subtracted_term = (k**2 * np.sin(theta_prime) * np.cos(theta_prime)) / np.sqrt(1 - k**2 * np.sin(theta_prime)**2)
+    B_lmbda = B_coeff * (ellipeinc(theta_prime, k) - B_fk_coeff * ellipkinc(theta_prime, k) - B_fk_subtracted_term) # check this is right
+
+    # compute terms associated with C(lambda) 
+    C_coeff = 2/((b**2 - c**2) * np.sqrt(a**2 - c**2))
+    C_ek_subtracted_term = (np.sin(theta_prime) * np.sqrt(1 - k**2 * np.sin(theta_prime)**2)) / np.cos(theta_prime) # check the brackets here ??
+    C_lmbda = C_coeff * (C_ek_subtracted_term - ellipeinc(theta_prime, k))
+    
+    return A_lmbda, B_lmbda, C_lmbda
+
+
+def calculate_internal_g(x, y, z, a, b, c, density):
+    """
+    Calculate the field inside the ellipsoid due to the ellipsoid body.
+    
+    Parameters
+    ----------
+    x, y, z (array, integer): Observation coordinates (2D or 1D)
+    a, b, c (floats): semiaxes lengths of the ellipsoid. 
+                    NOTE: these must comply with chosen ellipsoid type.
+    density (float): uniform density of the ellipsoid.
+    
+    Returns
+    -------
+    g_internal (array): values of the g component within the ellispoid.
+    
+    """
+    G = 6.67e-11
+    A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda=0)
+    g_internal = np.pi * a * b * c * G * density * ()
 
 def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
     
@@ -14,9 +73,9 @@ def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes,
     
     Parameters
     ----------
-    lambda (float): the parameter defining surfaces in confocal family, for an ellipsoid.
-    Observation coordinates (integer): x, y, z
-
+    x, y, z (array, integer): Observation coordinates (2D or 1D)
+    a, b, c (floats): semiaxes lengths of the ellipsoid. 
+                    NOTE: these must comply with chosen ellipsoid type.
 
     Returns
     -------
@@ -67,9 +126,9 @@ def calculate_delta_gs_prolate(x, y, z, a, b, c, density=1000): # takes semiaxes
     
     Parameters
     ----------
-    lambda (float): the parameter defining surfaces in confocal family, for an ellipsoid.
-    Observation coordinates (integer): x, y, z
-
+    x, y, z (array, integer): Observation coordinates (2D or 1D)
+    a, b, c (floats): semiaxes lengths of the ellipsoid. 
+                    NOTE: these must comply with chosen ellipsoid type.
 
     Returns
     -------
@@ -117,9 +176,9 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxe
     
     Parameters
     ----------
-    lambda (float): the parameter defining surfaces in confocal family, for an ellipsoid.
-    Observation coordinates (integer): x, y, z
-
+    x, y, z (array, integer): Observation coordinates (2D or 1D)
+    a, b, c (floats): semiaxes lengths of the ellipsoid. 
+                    NOTE: these must comply with chosen ellipsoid type.
 
     Returns
     -------
@@ -133,8 +192,9 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxe
     # constants
     G = 6.6743e-11
 
-    # call and use lambda function 
+    # call and use calc_lambda abd get_ABC functions 
     lmbda = calculate_lambda(x, y, z, a, b, c)
+    A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda)
     
     # check the function is used for the correct type of ellipsoid
     if not (a > b > c):
@@ -143,25 +203,6 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxe
     
     # compute the coefficient of the three delta_g equations 
     co_eff = -2 * np.pi * a * b * c * G * density
-    k = np.sqrt((a**2 - b**2)/(a**2 - c**2))
-    theta_prime = np.arcsin(np.sqrt((a**2 - c**2)/(a**2 + lmbda))) # for theta in range (0 =< theta =< np.pi/2) - check how to code this??
-
-    # compute terms associated with A(lambda) 
-    A_coeff = 2/((a**2 - b**2)*np.sqrt(a**2 - c**2))
-    A_elliptic_integral = ellipkinc(theta_prime, k)  - ellipeinc(theta_prime, k)
-    A_lmbda = A_coeff * A_elliptic_integral
-
-
-    # compute terms associated with B(lambda) 
-    B_coeff = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
-    B_fk_coeff = ((b**2 - c**2)/(a**2 - c**2))
-    B_fk_subtracted_term = (k**2 * np.sin(theta_prime) * np.cos(theta_prime)) / np.sqrt(1 - k**2 * np.sin(theta_prime)**2)
-    B_lmbda = B_coeff * (ellipeinc(theta_prime, k) - B_fk_coeff * ellipkinc(theta_prime, k) - B_fk_subtracted_term) # check this is right
-
-    # compute terms associated with C(lambda) 
-    C_coeff = 2/((b**2 - c**2) * np.sqrt(a**2 - c**2))
-    C_ek_subtracted_term = (np.sin(theta_prime) * np.sqrt(1 - k**2 * np.sin(theta_prime)**2)) / np.cos(theta_prime) # check the brackets here ??
-    C_lmbda = C_coeff * (C_ek_subtracted_term - ellipeinc(theta_prime, k))
 
     # compile all terms 
     dg1 = co_eff * x * A_lmbda
