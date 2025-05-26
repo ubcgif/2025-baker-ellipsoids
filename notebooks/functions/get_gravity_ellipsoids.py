@@ -59,9 +59,19 @@ def calculate_internal_g(x, y, z, a, b, c, density):
     g_internal (array): values of the g component within the ellispoid.
     
     """
+    # constants
     G = 6.67e-11
+    
+    # calculate functions with lambda = 0
     A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda=0)
-    g_internal = np.pi * a * b * c * G * density * ()
+    
+    # differentiate eqn (19) from Clark et al to get internal components
+    g_int_x = np.pi * a * b * c * G * density * - 2 * A_lmbda * x
+    g_int_y = np.pi * a * b * c * G * density * - 2 * B_lmbda * y
+    g_int_z = np.pi * a * b * c * G * density * - 2 * C_lmbda * z
+    
+    return g_int_x, g_int_y, g_int_z
+    
 
 def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
     
@@ -76,6 +86,7 @@ def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes,
     x, y, z (array, integer): Observation coordinates (2D or 1D)
     a, b, c (floats): semiaxes lengths of the ellipsoid. 
                     NOTE: these must comply with chosen ellipsoid type.
+    density (float): density of the body of interest in kg/m^3
 
     Returns
     -------
@@ -129,6 +140,8 @@ def calculate_delta_gs_prolate(x, y, z, a, b, c, density=1000): # takes semiaxes
     x, y, z (array, integer): Observation coordinates (2D or 1D)
     a, b, c (floats): semiaxes lengths of the ellipsoid. 
                     NOTE: these must comply with chosen ellipsoid type.
+    density (float): density of the body of interest in kg/m^3
+    
 
     Returns
     -------
@@ -179,6 +192,7 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxe
     x, y, z (array, integer): Observation coordinates (2D or 1D)
     a, b, c (floats): semiaxes lengths of the ellipsoid. 
                     NOTE: these must comply with chosen ellipsoid type.
+    density (float): density of the body of interest in kg/m^3
 
     Returns
     -------
@@ -211,56 +225,58 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxe
     
     return dg1, dg2, dg3
 
-def calc_gz_array(func, spacing, region, height, a, b, c, density):
+def get_gz_array(region, spacing, extra_coords, a, b, c, density, func):
+    """
     
-    """Function to call one of the gz functions,
-    and use it for an array of coordinates.
+    Takes the chosen ellipsoid function, the internal potential function,
+    runs these functions with necessary parameters,
+    and combines into a single array to return a total ellipsoid function for
+    any given coordinate.
     
     Parameters
     ----------
-    func (function): the function for the desired ellipsoid (triaxial, prolate or oblate)
-    spacing (float, tuple)): grid spacing. 1 value means equal in all directions. 
-                            tuple = (spacing_north, spacing_east)
-                            
-    region (list): [W, E, S, N] for the boundaries in each direction.
-    height (float): the z-plane to produce the 2D slice. 
-                    NOTE: if plane disects the ellipsoid, the internal values will 
-                    be retruned as NaNs.
+    region (list)[N, S, E, W]: end points of the coordinate grid
+    spacing (float): separation between the points (default = 1)
+    extra_coords (float or list): surfaces of constant height to test (default = 0)
     a, b, c (floats): semiaxes lengths of the ellipsoid. 
                     NOTE: these must comply with chosen ellipsoid type.
-    density (float): uniform density of the ellipsoid.
-                    
-                    
-    Returns 
+    density (float): density of the body of interest in kg/m^3
+    func (function): chosen function for the type of ellipsoid 
+    
+    
+    Returns
     -------
-    easting (array): the easting value of each point on the coordinate grid.
-    northing (array): the northing value of each point on the cooridnate grid.
-    gz (array) : a value of gz for each point on the coordinate grid.
+    xresults (array):
+    yresults (array):
+    zresults (array):
     
-    
-    TO DO:
-    
-    return all g components?
-    
+    NOTES:
+    Get it to produce one output array?
+        
     """
-  
+    # create the coordinate arrays and the mask for the internal 
+    x, y, z, internal = get_coords_and_mask(region, spacing, extra_coords, a, b, c)
+    
+    
+    # create array to hold values
+    xresults = np.zeros(x.shape)
+    yresults = np.zeros(y.shape)
+    zresults = np.zeros(z.shape)
+    
+    # call functions to produce g values, external and internal
+    g_ext_x, g_ext_y, g_ext_z = func(x, y, z, a, b, c, density)
+    g_int_x, g_int_y, g_int_z = calculate_internal_g(x, y, z, a, b, c, density)
+    
+    # assign external and internal values to the arrays created
+    xresults[internal] = g_int_x
+    xresults[~internal] = g_ext_x
+    
+    yresults[internal] = g_int_y
+    yresults[~internal] = g_ext_y
+    
+    zresults[internal] = g_int_z
+    zresults[~internal] = g_ext_z
+    
+    return xresults, yresults, zresults
 
-    # set the coord points
-    easting, northing, elv = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=5)
-    gz_2d = np.empty_like(easting)
-
-    # check the function runs and that the correct a, b, c ratio has been given for chosen function
-    func(easting[0, 0], northing[0, 0], elv[0, 0], a, b, c, density)
-
-    # loop over coordinate points 
-    # bit concerned about how clunky this is?
-    for i in range(easting.shape[0]):
-        for j in range(easting.shape[1]):
-            try:
-                _, _, gz = func(easting[i, j], northing[i, j], elv[i, j], a, b, c, density)
-                gz_2d[i, j] = gz
-            except ValueError: # give nan values when ValueError thrown in the ellips. function
-                gz_2d[i, j] = np.nan 
-                
-    return easting, northing, gz_2d
-
+    
