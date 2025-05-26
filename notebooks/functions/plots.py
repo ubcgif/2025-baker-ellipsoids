@@ -1,13 +1,13 @@
-from .utils import calculate_lambda, get_ellipsoid_mass
-from  .get_gravity_ellipsoids import calculate_delta_gs_oblate, calculate_delta_gs_prolate, calculate_delta_gs_triaxial, calc_gz_array
 import  matplotlib.pyplot as plt
 from choclo.point import gravity_u as pointgrav
 import numpy as np
+from functions import get_gz_array
 import verde as vd
+
 
 # plot visualising how delta_g_z changes with distance from the ellipsoid 
 
-def plot_colourmap_gz(func, spacing, region, z_height, a, b, c, density):
+def plot_colourmap_gz(region, spacing, extra_coords, a, b, c, density, func):
     """
     Creates northing and easting (x, y) coordinates (fixed area for now),
     Eliminates those within the ellipsoid body,
@@ -33,9 +33,12 @@ def plot_colourmap_gz(func, spacing, region, z_height, a, b, c, density):
     -------
     None. Plots colourmap of easting, northing at chosen z surface height.    
     """
+    easting, northing, height = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
 
-    e, n, g = calc_gz_array(func, spacing, region, z_height, a, b, c, density)
-    plt.pcolormesh(e, n, g)
+    xresults, yresults, zresults = get_gz_array(region, spacing, extra_coords, a, b, c, density, func)
+   
+    
+    plt.pcolormesh(easting, northing, zresults)
     plt.gca().set_aspect("equal")
     plt.colorbar(label="gz")
     plt.title("Vertical gravity on a plane of constant height")

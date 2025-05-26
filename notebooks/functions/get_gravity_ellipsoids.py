@@ -73,7 +73,7 @@ def calculate_internal_g(x, y, z, a, b, c, density):
     return g_int_x, g_int_y, g_int_z
     
 
-def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
+def calculate_delta_gs_oblate(x, y, z, a, b, c, density): # takes semiaxes, lambda value, density
     
     """
     Calculate the components of delta_g_i for i=1,2,3, for the oblate ellipsoid case (a < b = c 
@@ -128,7 +128,7 @@ def calculate_delta_gs_oblate(x, y, z, a, b, c, density=1000): # takes semiaxes,
 
     return dg1, dg2, dg3
 
-def calculate_delta_gs_prolate(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
+def calculate_delta_gs_prolate(x, y, z, a, b, c, density): # takes semiaxes, lambda value, density
     
     """
     Calculate the components of delta_g_i for i=1,2,3, for the prolate ellipsoid case.
@@ -180,7 +180,7 @@ def calculate_delta_gs_prolate(x, y, z, a, b, c, density=1000): # takes semiaxes
     
     return dg1, dg2, dg3
 
-def calculate_delta_gs_triaxial(x, y, z, a, b, c, density=1000): # takes semiaxes, lambda value, density
+def calculate_delta_gs_triaxial(x, y, z, a, b, c, density): # takes semiaxes, lambda value, density
     
     """
     Calculate the components of delta_g_i for i=1,2,3, for the triaxial ellipsoid case.
@@ -264,18 +264,18 @@ def get_gz_array(region, spacing, extra_coords, a, b, c, density, func):
     zresults = np.zeros(z.shape)
     
     # call functions to produce g values, external and internal
-    g_ext_x, g_ext_y, g_ext_z = func(x, y, z, a, b, c, density)
-    g_int_x, g_int_y, g_int_z = calculate_internal_g(x, y, z, a, b, c, density)
+    g_ext_x, g_ext_y, g_ext_z = func(x[~internal], y[~internal], z[~internal], a, b, c, density)
+    g_int_x, g_int_y, g_int_z = calculate_internal_g(x[internal], y[internal], z[internal], a, b, c, density)
     
     # assign external and internal values to the arrays created
     xresults[internal] = g_int_x
-    xresults[~internal] = g_ext_x
+    xresults[~internal]= g_ext_x
     
     yresults[internal] = g_int_y
     yresults[~internal] = g_ext_y
     
-    zresults[internal] = g_int_z
-    zresults[~internal] = g_ext_z
+    zresults[internal]= g_int_z
+    zresults[~internal]= g_ext_z
     
     return xresults, yresults, zresults
 

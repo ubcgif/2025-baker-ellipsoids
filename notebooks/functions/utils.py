@@ -23,8 +23,9 @@ def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordin
     # Calculate lambda using x, y, z 
 
     # Check that the input values of x, y, z are greater than a, b, c semi axis lengths
-    if not (np.abs(np.any(x)) >= a or np.abs(np.any(y)) >= b 
-            or np.abs(np.any(z)) >= c):
+    if not (np.any(np.abs(x) >= a) or 
+            np.any(np.abs(y) >= b) or 
+            np.any(np.abs(z) >= c)):
         raise ValueError(
             "Arrays x, y, z should contain points which lie outside"
             " of the surface defined by a, b, c"
@@ -86,10 +87,9 @@ def get_coords_and_mask(region, spacing, extra_coords, a, b, c):
     Consider making it possible to pass a varying array as a set of z coords.
     """
     
-    coords = vd.grid_coordinates(region, spacing=1, extra_coords=0)
-    x, y, z = coords
+    x, y, z = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
     
-    internal = (x**2)/a + y**2/b + z**2/c < 1
+    internal = (x**2)/(a**2) + (y**2)/(b**2) + (z**2)/(c**2) < 1
 
     return x, y, z, internal
 
