@@ -62,18 +62,29 @@ def calculate_internal_g(x, y, z, a, b, c, density):
     # constants
     G = 6.67e-11
     
-    # calculate functions with lambda = 0
-    A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda=0)
-    
-    # differentiate eqn (19) from Clark et al to get internal components
-    g_int_x = np.pi * a * b * c * G * density * - 2 * A_lmbda * x
-    g_int_y = np.pi * a * b * c * G * density * - 2 * B_lmbda * y
-    g_int_z = np.pi * a * b * c * G * density * - 2 * C_lmbda * z
-    
+    # in the triaxial case
+    if (b!=c):
+        # calculate functions with lambda = 0
+        A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda=0)
+        
+        # differentiate eqn (19) from Clark et al to get internal components
+        g_int_x = np.pi * a * b * c * G * density * - 2 * A_lmbda * x
+        g_int_y = np.pi * a * b * c * G * density * - 2 * B_lmbda * y
+        g_int_z = np.pi * a * b * c * G * density * - 2 * C_lmbda * z
+        
+    # in the prolate case
+    elif (a>b):
+        g_int_x, g_int_y, g_int_z = calculate_delta_gs_prolate(x, y, z, a, b, c, density, lmbda=0)
+        
+    # in the oblate case
+    else:
+        g_int_x, g_int_y, g_int_z = calculate_delta_gs_oblate(x, y, z, a, b, c, density, lmbda=0)
+        
+        
     return g_int_x, g_int_y, g_int_z
     
 
-def calculate_delta_gs_oblate(x, y, z, a, b, c, density): # takes semiaxes, lambda value, density
+def calculate_delta_gs_oblate(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
     
     """
     Calculate the components of delta_g_i for i=1,2,3, for the oblate ellipsoid case (a < b = c 
@@ -101,7 +112,8 @@ def calculate_delta_gs_oblate(x, y, z, a, b, c, density): # takes semiaxes, lamb
     G = 6.6743e-11
 
     # call and use lambda function 
-    lmbda = calculate_lambda(x, y, z, a, b, c)
+    if lmbda==None:
+        lmbda = calculate_lambda(x, y, z, a, b, c)
     
     # check the function is used for the correct type of ellipsoid
     if not (a < b and b == c):
@@ -128,7 +140,7 @@ def calculate_delta_gs_oblate(x, y, z, a, b, c, density): # takes semiaxes, lamb
 
     return dg1, dg2, dg3
 
-def calculate_delta_gs_prolate(x, y, z, a, b, c, density): # takes semiaxes, lambda value, density
+def calculate_delta_gs_prolate(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
     
     """
     Calculate the components of delta_g_i for i=1,2,3, for the prolate ellipsoid case.
@@ -156,7 +168,8 @@ def calculate_delta_gs_prolate(x, y, z, a, b, c, density): # takes semiaxes, lam
     G = 6.6743e-11
 
     # call and use lambda function 
-    lmbda = calculate_lambda(x, y, z, a, b, c)
+    if lmbda==None:
+        lmbda = calculate_lambda(x, y, z, a, b, c)
     
     # check the function is used for the correct type of ellipsoid
     if not (a > b and b == c):

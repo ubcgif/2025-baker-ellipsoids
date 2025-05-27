@@ -1,7 +1,7 @@
 import  matplotlib.pyplot as plt
 from choclo.point import gravity_u as pointgrav
 import numpy as np
-from functions import get_gz_array
+from functions import get_gz_array, get_ellipsoid_mass
 import verde as vd
 
 
@@ -71,7 +71,6 @@ def plot_gz_decay_comparison(func, num_points, a, b, c, density):
     x = y = np.zeros_like(z)
 
     # lists to hold variables
-    mag = []
     gz = []
     point_gz = []
     
