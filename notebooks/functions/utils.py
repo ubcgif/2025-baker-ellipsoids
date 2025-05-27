@@ -1,18 +1,19 @@
 import numpy as np 
 import verde as vd
 
+
 def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordinates
     
     """
     Calculate the value of lambda (parameter defining surfaces in confocal family,
-    colloquially, the inflation or deflation parameter), for given ellipsoid semiaxes
+    or more simply put, the inflation or deflation parameter), for given ellipsoid semiaxes
     and given points of observation.
     x, y, z are positions in the local co-ordinate system.
     
     Parameters
     ----------
     Semiaxes (length) (integer): a, b, c
-    Observation coordinates (integer): x, y, z
+    Observation coordinates (integer): x, y, z 
 
 
     Returns
@@ -30,6 +31,8 @@ def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordin
             "Arrays x, y, z should contain points which lie outside"
             " of the surface defined by a, b, c"
             )
+        
+    # compute lambda
     p_0 = a**2 * b**2 * c**2 - b**2 * c**2 * x**2 - c**2 * a**2 * y**2 - a**2 * b**2 * z**2
     p_1 = a**2 * b**2 + b**2 * c**2 + c**2 * a**2 - (b**2 + c**2) * x**2 - (c**2 + a**2) * y**2 - (a**2 + b**2) * z**2
     p_2 = a**2 + b**2 + c**2 - x**2 - y**2 - z**2
@@ -38,12 +41,16 @@ def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordin
 
     q = p_0 - ((p_1*p_2)/3) + 2*(p_2/3)**3
 
-    theta = np.arccos(-q / (2 * np.sqrt((-p/3)**3))) 
+    theta_internal = -q / (2 * np.sqrt((-p/3)**3))
+    
+    #clip to remove floating point precision errors
+    #theta_internal_1 = np.clip(theta_internal, -1.0, 1.0)
+    
+    theta = np.arccos(theta_internal) 
     
     lmbda = 2 * np.sqrt((-p/3)) * np.cos(theta/3) - p_2/3 
-    
 
-    return lmbda
+    return lmbda, theta_internal
 
    
 def get_ellipsoid_mass(a, b, c, density):
@@ -65,7 +72,7 @@ def get_ellipsoid_mass(a, b, c, density):
 
     return density * volume
 
-def get_coords_and_mask(region, spacing, extra_coords, a, b, c):
+def get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
     """
     Return the  coordinates and mask which separates points 
     within the given ellipsoid and on or outside
@@ -86,8 +93,13 @@ def get_coords_and_mask(region, spacing, extra_coords, a, b, c):
     NOTES:
     Consider making it possible to pass a varying array as a set of z coords.
     """
-    
-    x, y, z = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
+    if topo_h==None:
+        x, y, z = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
+        
+    else: 
+        x, y = vd.grid_coordinates(region=region, spacing=spacing)
+        z = topo_h * np.exp(- x**2/(np.max(x)**2) - y**2/(np.max(y)**2))
+            
     
     internal = (x**2)/(a**2) + (y**2)/(b**2) + (z**2)/(c**2) < 1
 

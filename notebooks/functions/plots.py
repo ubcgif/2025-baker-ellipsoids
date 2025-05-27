@@ -1,13 +1,13 @@
 import  matplotlib.pyplot as plt
 from choclo.point import gravity_u as pointgrav
 import numpy as np
-from functions import get_gz_array, get_ellipsoid_mass
+from functions import get_gz_array, get_ellipsoid_mass, get_coords_and_mask
 import verde as vd
 
 
 # plot visualising how delta_g_z changes with distance from the ellipsoid 
 
-def plot_colourmap_gz(region, spacing, extra_coords, a, b, c, density, func):
+def plot_colourmap_gz(region, spacing, extra_coords, a, b, c, density, func, topo_h=None):
     """
     Creates northing and easting (x, y) coordinates (fixed area for now),
     Eliminates those within the ellipsoid body,
@@ -33,12 +33,13 @@ def plot_colourmap_gz(region, spacing, extra_coords, a, b, c, density, func):
     -------
     None. Plots colourmap of easting, northing at chosen z surface height.    
     """
-    easting, northing, height = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
 
-    xresults, yresults, zresults = get_gz_array(region, spacing, extra_coords, a, b, c, density, func)
+    x, y, z, _ = get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h)
+
+    xresults, yresults, zresults = get_gz_array(region, spacing, extra_coords, a, b, c, density, func, topo_h)
    
     
-    plt.pcolormesh(easting, northing, zresults)
+    plt.pcolormesh(x, y, zresults)
     plt.gca().set_aspect("equal")
     plt.colorbar(label="gz")
     plt.title("Vertical gravity on a plane of constant height")
@@ -62,19 +63,20 @@ def plot_gz_decay_comparison(func, num_points, a, b, c, density):
     
     Returns 
     -------
+    None. Produces two plots: decay with distance and difference between the two
+    models.
     
     """
     
-    smallest_zval = max([a, b, c])
-        
-    z = np.linspace(smallest_zval, 2*smallest_zval**2, num_points)
+    # plot decay when moving along the z-axis
+    z = np.linspace(c, 10*c**2, num_points)
     x = y = np.zeros_like(z)
 
     # lists to hold variables
     gz = []
     point_gz = []
     
-    #calculate ellipsoid mass
+    # calculate ellipsoid mass
     ellipsoid_mass = get_ellipsoid_mass(a, b, c, density)
     
 
@@ -85,14 +87,27 @@ def plot_gz_decay_comparison(func, num_points, a, b, c, density):
         point_gz.append(point_grav)
         gz.append(gz_val)
 
-    # plot findings
-    plt.figure(figsize = (10, 8))
-    plt.title("Comparing ellipsoid gravity to point mass gravity at distance")
-    plt.plot(z, np.abs(gz), color = 'blue', label='Ellipsoid decay')
-    plt.plot(z, np.abs(point_gz), color = 'red', label='Point mass decay')
-    plt.legend()
-    plt.xlabel('Distance from source surface (m)')
-    plt.ylabel('change in gravity (m/s^2)')
-    plt.grid(alpha=0.3)
     
+    # plotting
+    fig, axs = plt.subplots(1, 2, figsize=(12, 6), sharex=True)
+
+    # plot 1: gravity decay of the two models
+    axs[0].set_title("Comparing ellipsoid gravity to point mass gravity at distance")
+    axs[0].plot(z, np.abs(gz), color='blue', label='Ellipsoid decay')
+    axs[0].plot(z, np.abs(point_gz), color='red', label='Point mass decay')
+    axs[0].set_ylabel('Gravity (m/s²)')
+    axs[0].set_xlabel('Distance from source (surface) (m)')
+    axs[0].legend()
+    axs[0].grid(alpha=0.3)
+    
+    # plot 2: difference between the gravity models
+    axs[1].set_title("Difference between ellipsoid and point mass gravity")
+    axs[1].plot(z, np.abs(gz) - np.abs(point_gz), color='purple', label='Difference')
+    axs[1].set_xlabel('Distance from source (surface) (m)')
+    axs[1].set_ylabel('Change in gravity (m/s²)')
+    axs[1].grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+
     return 
