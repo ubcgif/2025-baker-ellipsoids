@@ -44,13 +44,13 @@ def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordin
     theta_internal = -q / (2 * np.sqrt((-p/3)**3))
     
     #clip to remove floating point precision errors
-    #theta_internal_1 = np.clip(theta_internal, -1.0, 1.0)
+    theta_internal_1 = np.clip(theta_internal, -1.0, 1.0)
     
-    theta = np.arccos(theta_internal) 
+    theta = np.arccos(theta_internal_1) 
     
     lmbda = 2 * np.sqrt((-p/3)) * np.cos(theta/3) - p_2/3 
 
-    return lmbda, theta_internal
+    return lmbda
 
    
 def get_ellipsoid_mass(a, b, c, density):

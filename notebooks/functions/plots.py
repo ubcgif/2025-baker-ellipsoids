@@ -22,8 +22,6 @@ def plot_colourmap_gz(region, spacing, extra_coords, a, b, c, density, func, top
                             
     region (list): [W, E, S, N] for the boundaries in each direction.
     height (float): the z-plane to produce the 2D slice. 
-                    NOTE: if plane disects the ellipsoid, the internal values will 
-                    be retruned as NaNs.
     a, b, c (floats): semiaxes lengths of the ellipsoid. 
                     NOTE: these must comply with chosen ellipsoid type.
     density (float): uniform density of the ellipsoid.

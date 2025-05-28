@@ -25,7 +25,7 @@ def get_ABC(x, y, z, a, b, c, lmbda):
     
     # compute the k and theta terms for the elliptic integrals
     k = np.sqrt((a**2 - b**2)/(a**2 - c**2))
-    theta_prime = np.arcsin(np.sqrt((a**2 - c**2)/(a**2 + lmbda))) # for theta in range (0 =< theta =< np.pi/2) - check how to code this??
+    theta_prime = np.arcsin(np.sqrt((a**2 - c**2)/(a**2 + lmbda)))
 
     
     # compute terms associated with A(lambda) 
@@ -66,10 +66,9 @@ def calculate_internal_g(x, y, z, a, b, c, density):
     g_int_z (array): values of the gz component within the ellispoid.
     
     """
-    
+    # calculate functions with lambda = 0
     # in the triaxial case 
     if (b!=c):
-        # calculate functions with lambda = 0
         g_int_x, g_int_y, g_int_z = calculate_delta_gs_triaxial(x, y, z, a, b, c, density)
         
     # in the prolate case
