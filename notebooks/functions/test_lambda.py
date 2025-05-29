@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from .utils import calculate_lambda
 
@@ -45,5 +46,27 @@ def test_zero_cases_for_lambda():
     np.testing.assert_allclose(lmbda2, lmbda_eqn2)
     
     
-    
-    
+@pytest.mark.parametrize("zero_coord", ("x", "y", "z"))
+def test_second_order_equations(zero_coord):
+    """
+    Test lambda calculation against the solutions for its second order characteristic
+    equations that take place when only one of the coordinates is zero.
+    """
+    a, b, c = 3.4, 2.1, 1.3
+    if zero_coord == "z":
+        x, y, z = 5.4, 8.1, 0.0
+        lambda_ = calculate_lambda(x, y, z, a, b, c)
+        p1 = a**2 + b**2 - x**2 - y**2
+        p0 = a**2 * b**2 - x**2 * b**2 - y**2 * a**2
+    elif zero_coord == "y":
+        x, y, z = 5.4, 0.0, 4.5
+        lambda_ = calculate_lambda(x, y, z, a, b, c)
+        p1 = a**2 + c**2 - x**2 - z**2
+        p0 = a**2 * c**2 - x**2 * c**2 - z**2 * a**2
+    else:
+        x, y, z = 0.0, 8.1, 4.5
+        lambda_ = calculate_lambda(x, y, z, a, b, c)
+        p1 = b**2 + c**2 - y**2 - z**2
+        p0 = b**2 * c**2 - y**2 * c**2 - z**2 * b**2
+    expected_lambda = 0.5 * (np.sqrt(p1**2 - 4 * p0) - p1)
+    np.testing.assert_allclose(expected_lambda, lambda_)
