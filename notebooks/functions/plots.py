@@ -1,8 +1,8 @@
-import  matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from choclo.point import gravity_u as pointgrav
 import numpy as np
-from get_gravity_ellipsoids import get_gz_array
-from utils import  get_ellipsoid_mass, get_coords_and_mask
+from .get_gravity_ellipsoids import get_gz_array
+from .utils import  get_ellipsoid_mass, get_coords_and_mask
 import verde as vd
 from matplotlib import cm
 
