@@ -20,13 +20,15 @@ def get_V_as_Euler(yaw, pitch, roll):
     parameters
     ----------
     Yaw, pitch, roll (float 0<=i<360): angles of rotation in degrees for each 
-    axis, respectively. Rotations are applied in order: 1st = yaw - rotates the 
+    axis, respectively. Rotations are applied in order: 1st = yaw - rotates about the 
     vertical or z axis, 2nd = pitch - rotates the northing or y axis, and 3rd
     = roll - rotates the easting or x axis. 
     
     Returns
     -------
-    V (matrix): rotation matrix in degrees.
+    V (matrix): rotation matrix in degrees. NOTE: this produces a matrix which 
+    converts from the local to the global coordinate system, or (intuitively)
+    r.T.
     
     """
     

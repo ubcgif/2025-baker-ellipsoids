@@ -94,14 +94,14 @@ def get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
     Consider making it possible to pass a varying array as a set of z coords.
     """
     if topo_h==None:
-        x, y, z = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
+        e, n, u = vd.grid_coordinates(region=region, spacing=spacing, extra_coords=extra_coords)
         
     else: 
-        x, y = vd.grid_coordinates(region=region, spacing=spacing)
-        z = topo_h * np.exp(- x**2/(np.max(x)**2) - y**2/(np.max(y)**2))
+        e, n = vd.grid_coordinates(region=region, spacing=spacing)
+        u = topo_h * np.exp(- e**2/(np.max(e)**2) - n**2/(np.max(n)**2))
             
     
-    internal = (x**2)/(a**2) + (y**2)/(b**2) + (z**2)/(c**2) < 1
+    internal = (e**2)/(a**2) + (n**2)/(b**2) + (u**2)/(c**2) < 1
 
-    return x, y, z, internal
+    return e, n, u, internal
 

@@ -239,7 +239,7 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density): # takes semiaxes, la
     
     return dg1, dg2, dg3
 
-def get_gz_array(region, spacing, extra_coords, a, b, c, density, func, topo_h=None):
+def get_gz_array(local_coords, internal_mask, a, b, c, density, topo_h=None):
     """
     
     Takes the chosen ellipsoid function, the internal potential function,
@@ -249,13 +249,13 @@ def get_gz_array(region, spacing, extra_coords, a, b, c, density, func, topo_h=N
     
     Parameters
     ----------
-    region (list)[N, S, E, W]: end points of the coordinate grid
-    spacing (float): separation between the points (default = 1)
-    extra_coords (float or list): surfaces of constant height to test (default = 0)
+    local_coords (x, y, z): array/coordinate system of the observation points 
+    rotated by some matrix R to be in the local coordinate system of the ellipsoid.
     a, b, c (floats): semiaxes lengths of the ellipsoid. 
                     NOTE: these must comply with chosen ellipsoid type.
     density (float): density of the body of interest in kg/m^3
-    func (function): chosen function for the type of ellipsoid 
+    internal_mask (boolean array): denoting where the surface of the ellipsoid lies
+    where True is inside the ellipsoid.
     
     
     Returns
@@ -268,9 +268,16 @@ def get_gz_array(region, spacing, extra_coords, a, b, c, density, func, topo_h=N
     Get it to produce one output array?
         
     """
-    # create the coordinate arrays and the mask for the internal 
-    x, y, z, internal = get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h)
+    # select function to use based on ellipsoid parameters
+    if (a > b > c):
+        func = calculate_delta_gs_triaxial
+    elif (a > b and b == c):
+        func = calculate_delta_gs_prolate
+    elif (a < b and b == c):
+        func = calculate_delta_gs_oblate
     
+    # unpack input 
+    x, y, z = local_coords
     
     # create array to hold values
     xresults = np.zeros(x.shape)
@@ -278,18 +285,18 @@ def get_gz_array(region, spacing, extra_coords, a, b, c, density, func, topo_h=N
     zresults = np.zeros(z.shape)
     
     # call functions to produce g values, external and internal
-    g_ext_x, g_ext_y, g_ext_z = func(x[~internal], y[~internal], z[~internal], a, b, c, density)
-    g_int_x, g_int_y, g_int_z = calculate_internal_g(x[internal], y[internal], z[internal], a, b, c, density)
+    g_ext_x, g_ext_y, g_ext_z = func(x[~internal_mask], y[~internal_mask], z[~internal_mask], a, b, c, density)
+    g_int_x, g_int_y, g_int_z = calculate_internal_g(x[internal_mask], y[internal_mask], z[internal_mask], a, b, c, density)
     
     # assign external and internal values to the arrays created
-    xresults[internal] = g_int_x
-    xresults[~internal]= g_ext_x
+    xresults[internal_mask] = g_int_x
+    xresults[~internal_mask]= g_ext_x
     
-    yresults[internal] = g_int_y
-    yresults[~internal] = g_ext_y
+    yresults[internal_mask] = g_int_y
+    yresults[~internal_mask] = g_ext_y
     
-    zresults[internal]= g_int_z
-    zresults[~internal]= g_ext_z
+    zresults[internal_mask]= g_int_z
+    zresults[~internal_mask]= g_ext_z
     
     return xresults, yresults, zresults
 
