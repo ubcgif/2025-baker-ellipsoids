@@ -80,7 +80,7 @@ def get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
     
     Parameters
     ----------
-    region (list)[N, S, E, W]: end points of the coordinate grid
+    region (list)(W, E, S, N): end points of the coordinate grid
     spacing (float): separation between the points (default = 1)
     extra_coords (float or list): surfaces of constant height to test (default = 0)
     a, b, c (float): semiaxes of the ellipsoid
