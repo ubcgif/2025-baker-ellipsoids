@@ -69,7 +69,7 @@ def calculate_internal_g(x, y, z, a, b, c, density):
     # calculate functions with lambda = 0
     # in the triaxial case 
     if (b!=c):
-        g_int_x, g_int_y, g_int_z = calculate_delta_gs_triaxial(x, y, z, a, b, c, density)
+        g_int_x, g_int_y, g_int_z = calculate_delta_gs_triaxial(x, y, z, a, b, c, density, lmbda=0)
         
     # in the prolate case
     elif (a>b):
@@ -196,7 +196,7 @@ def calculate_delta_gs_prolate(x, y, z, a, b, c, density, lmbda=None): # takes s
     
     return dg1, dg2, dg3
 
-def calculate_delta_gs_triaxial(x, y, z, a, b, c, density): # takes semiaxes, lambda value, density
+def calculate_delta_gs_triaxial(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
     
     """
     Calculate the components of delta_g_i for i=1,2,3, for the triaxial ellipsoid case.
@@ -221,7 +221,10 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density): # takes semiaxes, la
     G = 6.6743e-11
 
     # call and use calc_lambda abd get_ABC functions 
-    lmbda = calculate_lambda(x, y, z, a, b, c)
+    # account for the internal case where lmbda=0
+    if lmbda==None:
+        lmbda = calculate_lambda(x, y, z, a, b, c)
+        
     A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda)
     
     # check the function is used for the correct type of ellipsoid
@@ -239,7 +242,7 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density): # takes semiaxes, la
     
     return dg1, dg2, dg3
 
-def get_gz_array(local_coords, internal_mask, a, b, c, density, topo_h=None):
+def get_gz_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
     """
     
     Takes the chosen ellipsoid function, the internal potential function,
@@ -275,9 +278,7 @@ def get_gz_array(local_coords, internal_mask, a, b, c, density, topo_h=None):
         func = calculate_delta_gs_prolate
     elif (a < b and b == c):
         func = calculate_delta_gs_oblate
-    
-    # unpack input 
-    x, y, z = local_coords
+
     
     # create array to hold values
     xresults = np.zeros(x.shape)

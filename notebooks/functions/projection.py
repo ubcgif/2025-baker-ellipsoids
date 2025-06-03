@@ -1,7 +1,6 @@
 # to project gravity surface in local coords onto global coordinate system
 
 import numpy as np
-from .utils import get_coords_and_mask
 from .coord_rotations import get_V_as_Euler
 from .get_gravity_ellipsoids import get_gz_array
 
@@ -47,11 +46,14 @@ def project_gravity_global(gs, r):
     
     return g_global
 
+# pass the grid points e, n , u into function instead
+# get it to calculate the internal mask within this function
 
-def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, obs_points, internal_mask, density):
+def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, e, n, u, density):
     
     """
     Function which sews everything together:
+    - Creates global coordinate system as user defines
     - Creates rotation matrix based on input angles
     - Rotates observation points     
     - Calculates the gravity components for the rotated points 
@@ -64,17 +66,28 @@ def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, obs_points, internal_mask, d
     Returns 
     -------
     """
+    # create boolean for internal vs external field points
+    internal_mask = (e**2)/(a**2) + (n**2)/(b**2) + (u**2)/(c**2) < 1
+    original_shape = e.shape
+    obs_points = np.vstack((e.ravel(), n.ravel(), u.ravel()))
     
     # create rotation matrix 
     R = get_V_as_Euler(yaw, pitch, roll)
     
     # rotate observation points
-    local_coords = [x, y, z] = R.T @ obs_points 
+    x, y, z = R.T @ obs_points
+    x = x.reshape(original_shape)
+    y = y.reshape(original_shape)
+    z = z.reshape(original_shape)
     
     # calculate gravity component for the rotated points
-    G = [gx, gy, gz] = get_gz_array(local_coords, internal_mask, a, b, c, density)
+    gx, gy, gz = get_gz_array(internal_mask, a, b, c, x, y, z, density)
+    G = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
     
     # project onto upward unit vector, axis U
-    G_global = [ge, gn, gu] = R @ G
+    ge, gn, gu = R @ G
+    ge = ge.reshape(original_shape)
+    gn = gn.reshape(original_shape)
+    gu = gu.reshape(original_shape)
     
-    return G_global
+    return ge, gn, gu 
