@@ -37,7 +37,6 @@ def test_symmetry_ellipsoids():
     
 def test_symmetry_prolate_oblate():
     
-    
     a, b, c = (3, 2, 2)
     d, f, g = (2, 3, 3)
     R = 5
@@ -65,8 +64,11 @@ def test_opposite_planes():
     np.testing.assert_allclose(gu1, -np.flip(gu2))
     
 def test_int_ext_boundary():
+    
+    # compare a set value apart
+    
     a, b, c = (5, 4, 3)
-    x = np.linspace(0, 10, 50)
+    x = np.linspace(0, 10, 100)
     y = np.zeros(x.shape)
     z = np.zeros(x.shape)
     internal_mask = (x**2)/(a**2) + (y**2)/(b**2) + (z**2)/(c**2) < 1

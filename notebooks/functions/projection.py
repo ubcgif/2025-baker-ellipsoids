@@ -49,7 +49,7 @@ def project_gravity_global(gs, r):
 # pass the grid points e, n , u into function instead
 # get it to calculate the internal mask within this function
 
-def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, e, n, u, density):
+def gz_rotated_ellipsoid(ellipsoid, yaw, pitch, roll, e, n, u, density):
     
     """
     Function which sews everything together:
@@ -66,6 +66,8 @@ def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, e, n, u, density):
     Returns 
     -------
     """
+    a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
+    
     # create boolean for internal vs external field points
     internal_mask = (e**2)/(a**2) + (n**2)/(b**2) + (u**2)/(c**2) < 1
     cast = np.broadcast(e, n, u)
@@ -76,9 +78,6 @@ def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, e, n, u, density):
     
     # rotate observation points
     rotated_points = R.T @ obs_points
-    # x = x.reshape(cast.shape)
-    # y = y.reshape(cast.shape)
-    # z = z.reshape(cast.shape)
     x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
     
     # calculate gravity component for the rotated points
@@ -87,15 +86,8 @@ def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, e, n, u, density):
     
     # project onto upward unit vector, axis U
     g_projected = R @ G
-    # ge = ge.reshape(cast.shape)
-    # gn = gn.reshape(cast.shape)
-    # gu = gu.reshape(cast.shape)
     ge, gn, gu = tuple(c.reshape(cast.shape) for c in g_projected)
     
-    # tests 
     
-    #symmetry tests:
-        # prolate and oblate - conecntric circle on northing upward plane 
-        # 
     
     return ge, gn, gu 
