@@ -68,26 +68,34 @@ def gz_rotated_ellipsoid(a, b, c, yaw, pitch, roll, e, n, u, density):
     """
     # create boolean for internal vs external field points
     internal_mask = (e**2)/(a**2) + (n**2)/(b**2) + (u**2)/(c**2) < 1
-    original_shape = e.shape
+    cast = np.broadcast(e, n, u)
     obs_points = np.vstack((e.ravel(), n.ravel(), u.ravel()))
     
     # create rotation matrix 
     R = get_V_as_Euler(yaw, pitch, roll)
     
     # rotate observation points
-    x, y, z = R.T @ obs_points
-    x = x.reshape(original_shape)
-    y = y.reshape(original_shape)
-    z = z.reshape(original_shape)
+    rotated_points = R.T @ obs_points
+    # x = x.reshape(cast.shape)
+    # y = y.reshape(cast.shape)
+    # z = z.reshape(cast.shape)
+    x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
     
     # calculate gravity component for the rotated points
     gx, gy, gz = get_gz_array(internal_mask, a, b, c, x, y, z, density)
     G = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
     
     # project onto upward unit vector, axis U
-    ge, gn, gu = R @ G
-    ge = ge.reshape(original_shape)
-    gn = gn.reshape(original_shape)
-    gu = gu.reshape(original_shape)
+    g_projected = R @ G
+    # ge = ge.reshape(cast.shape)
+    # gn = gn.reshape(cast.shape)
+    # gu = gu.reshape(cast.shape)
+    ge, gn, gu = tuple(c.reshape(cast.shape) for c in g_projected)
+    
+    # tests 
+    
+    #symmetry tests:
+        # prolate and oblate - conecntric circle on northing upward plane 
+        # 
     
     return ge, gn, gu 

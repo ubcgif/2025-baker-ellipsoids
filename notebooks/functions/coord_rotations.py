@@ -39,6 +39,8 @@ def get_V_as_Euler(yaw, pitch, roll):
     r = R.from_euler('zyx', [yaw, -pitch, roll], degrees=True)
     V = r.as_matrix()
     
+    # add two tests - posiitve pitch means up 
+    # rotating - do i get the expected vector
     return V
 
 def structural_angles_to_abg(strike, dip, rake): # we can decide if this is needed
