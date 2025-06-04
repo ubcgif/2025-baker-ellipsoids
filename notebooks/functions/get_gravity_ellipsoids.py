@@ -1,25 +1,43 @@
-from .utils import calculate_lambda, get_coords_and_mask
+from .utils import _calculate_lambda
 import numpy as np 
 from scipy.special import ellipkinc, ellipeinc 
-import verde as vd 
 
-def get_ABC(x, y, z, a, b, c, lmbda):
+
+def _get_ABC(x, y, z, a, b, c, lmbda):
     """
-    Calculate the A(lmbda), B(lmbda), C(lmbda) functions using elliptic 
-    integrals as given in Clark et al (1986) and Takenhasi et al (2018).
+    Compute the A(λ), B(λ), and C(λ) functions using elliptic integrals, as 
+    required for potiential field calculations of ellipsoidal bodies.
     
     Parameters
     ----------
-    x, y, z (array, integer): Observation coordinates (2D or 1D)
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-                    NOTE: these must comply with chosen ellipsoid type.
-    lmbda (integer, array): the value/s of lambda associated with the confocal
-                            surfaces of the defined ellipsoid.
+    x, y, z : array_like or float
+        Cartesian observation coordinates. Each can be a scalar, 1D array, or 2D array, 
+        depending on the evaluation grid.
+    
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid (a ≥ b ≥ c). These must conform to the type 
+        of ellipsoid used (e.g., triaxial, prolate, oblate).
+    
+    lmbda : array_like or float
+        The λ (lambda) parameter(s) associated with the confocal ellipsoidal coordinate 
+        surfaces. Can be a scalar or an array matching the shape of the observation points.
+    
     Returns
     -------
-    A_lmbda (array): the A(lambda) values
-    B_lmbda (array): the B(lambda) values
-    C_lmbda (array): the C(lambda) values
+    A_lmbda : ndarray
+        A(λ) function values at each observation point.
+    
+    B_lmbda : ndarray
+        B(λ) function values at each observation point.
+    
+    C_lmbda : ndarray
+        C(λ) function values at each observation point.
+    
+    References
+    ----------
+    Clark, S. A., et al. (1986).
+    Takenhasi, Y., et al. (2018).
+
                             
     """
     
@@ -30,91 +48,119 @@ def get_ABC(x, y, z, a, b, c, lmbda):
     
     # compute terms associated with A(lambda) 
     A_coeff = 2/((a**2 - b**2)*np.sqrt(a**2 - c**2))
-    A_elliptic_integral = ellipkinc(theta_prime, k)  - ellipeinc(theta_prime, k)
+    A_elliptic_integral = ellipkinc(theta_prime, k) \
+        - ellipeinc(theta_prime, k)
     A_lmbda = A_coeff * A_elliptic_integral
 
 
     # compute terms associated with B(lambda) 
     B_coeff = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
     B_fk_coeff = ((b**2 - c**2)/(a**2 - c**2))
-    B_fk_subtracted_term = (k**2 * np.sin(theta_prime) * np.cos(theta_prime)) / np.sqrt(1 - k**2 * np.sin(theta_prime)**2)
-    B_lmbda = B_coeff * (ellipeinc(theta_prime, k) - B_fk_coeff * ellipkinc(theta_prime, k) - B_fk_subtracted_term) # check this is right
+    B_fk_subtracted_term = (k**2 * np.sin(theta_prime) * \
+                            np.cos(theta_prime)) / np.sqrt(1 - k**2 * \
+                                                        np.sin(theta_prime)**2)
+    B_lmbda = B_coeff * (ellipeinc(theta_prime, k) \
+                         - B_fk_coeff * ellipkinc(theta_prime, k) - \
+                             B_fk_subtracted_term) # check this is right
 
     # compute terms associated with C(lambda) 
     C_coeff = 2/((b**2 - c**2) * np.sqrt(a**2 - c**2))
-    C_ek_subtracted_term = (np.sin(theta_prime) * np.sqrt(1 - k**2 * np.sin(theta_prime)**2)) / np.cos(theta_prime) # check the brackets here ??
+    C_ek_subtracted_term = (np.sin(theta_prime) * \
+                            np.sqrt(1 - k**2 * np.sin(theta_prime)**2)) \
+        / np.cos(theta_prime) # check the brackets here ??
     C_lmbda = C_coeff * (C_ek_subtracted_term - ellipeinc(theta_prime, k))
     
     return A_lmbda, B_lmbda, C_lmbda
 
 
-def calculate_internal_g(x, y, z, a, b, c, density):
+def _get_internal_g(x, y, z, a, b, c, density):
     """
-    Calculate the field inside the ellipsoid due to the ellipsoid body.
+    Calculate the gravitational field inside a homogeneous ellipsoid.
     
     Parameters
     ----------
-    x, y, z (array, integer): Observation coordinates (2D or 1D)
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-                    NOTE: these must comply with chosen ellipsoid type.
-    density (float): uniform density of the ellipsoid.
+    x, y, z : array or float
+        Observation coordinates. Can be scalars, 1D arrays, or 2D arrays.
+    
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid. Must be consistent with the ellipsoid type used.
+    
+    density : float
+        Uniform density of the ellipsoid (kg/m³).
     
     Returns
     -------
-    g_int_x (array): values of the gx component within the ellispoid.
-    g_int_y(array): values of the gy component within the ellispoid.
-    g_int_z (array): values of the gz component within the ellispoid.
+    g_int_x : ndarray
+        x-component of the internal gravitational field.
     
+    g_int_y : ndarray
+        y-component of the internal gravitational field.
+    
+    g_int_z : ndarray
+        z-component of the internal gravitational field.
     """
     # calculate functions with lambda = 0
     # in the triaxial case 
     if (b!=c):
-        g_int_x, g_int_y, g_int_z = calculate_delta_gs_triaxial(x, y, z, a, b, c, density, lmbda=0)
+        g_int_x, g_int_y, g_int_z = _get_gravity_triaxial(x, y, z, a, b, c, density, lmbda=0)
         
     # in the prolate case
     elif (a>b):
-        g_int_x, g_int_y, g_int_z = calculate_delta_gs_prolate(x, y, z, a, b, c, density, lmbda=0)
+        g_int_x, g_int_y, g_int_z = _get_gravity_prolate(x, y, z, a, b, c, density, lmbda=0)
         
     # in the oblate case
     else:
-        g_int_x, g_int_y, g_int_z = calculate_delta_gs_oblate(x, y, z, a, b, c, density, lmbda=0)
+        g_int_x, g_int_y, g_int_z = _get_gravity_oblate(x, y, z, a, b, c, density, lmbda=0)
         
         
     return g_int_x, g_int_y, g_int_z
     
 
-def calculate_delta_gs_oblate(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
+def _get_gravity_oblate(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
     
     """
-    Calculate the components of delta_g_i for i=1,2,3, for the oblate ellipsoid case (a < b = c 
-    Delta_g_i represent the local axes system (for now, the only axes system). 
-    x, y, z are positions of observation in the local co-ordinate system.
+    Calculate the components of Δg₁, Δg₂, and Δg₃ for the oblate ellipsoid case (a < b = c).
     
+    Δgᵢ represents the components of the gravitational field change along the local 
+    principal axes of the ellipsoid.
     
     Parameters
     ----------
-    x, y, z (array, integer): Observation coordinates (2D or 1D)
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-                    NOTE: these must comply with chosen ellipsoid type.
-    density (float): density of the body of interest in kg/m^3
-    lmbda (float, array): a set of lambda values to use instead of those 
-    calculated in calculate_lambda, which is computed in the function. E.g., if
-    you wish to use lambda=0 for interal fields. When lmbda=None, the correct
-    lambda values are calculated within this function.
+    x, y, z : array or float
+        Observation coordinates in the local ellipsoid reference frame. 
+        Can be scalars, 1D arrays, or 2D arrays.
+    
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid. Must satisfy the condition a < b = c 
+        for the oblate ellipsoid case.
+    
+    density : float
+        Density of the ellipsoidal body (in kg/m³).
+    
+    lmbda : float or array
+        λ values used in the internal potential field solution, i.e. for the
+        case where λ = 0 inside the ellispoid. Otherwise is 'None' and appropriate λ 
+        values are computed internally based on the observation coordinates. 
 
+    
     Returns
     -------
-    dg1 (float): change in gravity for the x axis. (is this the right explanation?)
-    dg2 (float): change in gravity for the y axis.
-    dg3 (float): change in gravity for the z axis.
-
+    g1 : ndarray
+        Δg₁ component — change in gravity along the local x-axis.
+    
+    g2 : ndarray
+        Δg₂ component — change in gravity along the local y-axis.
+    
+    g3 : ndarray
+        Δg₃ component — change in gravity along the local z-axis.
     """
+
     # constants
     G = 6.6743e-11
 
     # call and use lambda function 
-    if lmbda==None:
-        lmbda = calculate_lambda(x, y, z, a, b, c)
+    if lmbda is None:
+        lmbda = _calculate_lambda(x, y, z, a, b, c)
     
     # check the function is used for the correct type of ellipsoid
     if not (a < b and b == c):
@@ -132,47 +178,60 @@ def calculate_delta_gs_oblate(x, y, z, a, b, c, density, lmbda=None): # takes se
     # compute the terms within the brackets for delta_g 1,2,3
     bracket_term_g1 = arc_tan_term - ((b**2 - a**2) / (a**2 + lmbda) )**0.5
     
-    bracket_term_g2g3 = ((((b**2 - a**2) * (a**2 + lmbda))**0.5) / (b**2 + lmbda)) - arc_tan_term
+    bracket_term_g2g3 = ((((b**2 - a**2) * (a**2 + lmbda))**0.5) / (b**2 + lmbda)) \
+        - arc_tan_term
 
     # compile constants, coefficients, bracket terms to calculate final value of the delta_g terms
-    dg1 = 4 * co_eff1 * x * bracket_term_g1
-    dg2 = 2 * co_eff1 * y * bracket_term_g2g3
-    dg3 = 2 * co_eff1 * z * bracket_term_g2g3
+    g1 = 4 * co_eff1 * x * bracket_term_g1
+    g2 = 2 * co_eff1 * y * bracket_term_g2g3
+    g3 = 2 * co_eff1 * z * bracket_term_g2g3
 
-    return dg1, dg2, dg3
+    return g1, g2, g3
 
-def calculate_delta_gs_prolate(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
+def _get_gravity_prolate(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
     
     """
-    Calculate the components of delta_g_i for i=1,2,3, for the prolate ellipsoid case.
-    Delta_g_i represent the local axes system (for now, the only axes system). 
-    x, y, z are positions of observation in the local co-ordinate system.
+    Calculate the components of Δg₁, Δg₂, and Δg₃ for the prolate ellipsoid case (a > b = c).
+    
+    Δgᵢ represents the components of the gravitational field change along the local 
+    principal axes of the ellipsoid.
     
     Parameters
     ----------
-    x, y, z (array, integer): Observation coordinates (2D or 1D)
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-                    NOTE: these must comply with chosen ellipsoid type.
-    density (float): density of the body of interest in kg/m^3
-    lmbda (float, array): a set of lambda values to use instead of those 
-    calculated in calculate_lambda, which is computed in the function. E.g., if
-    you wish to use lambda=0 for interal fields. When lmbda=None, the correct
-    lambda values are calculated within this function.
+    x, y, z : array or float
+        Observation coordinates in the local ellipsoid reference frame. 
+        Can be scalars, 1D arrays, or 2D arrays.
     
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid. Must satisfy the condition a > b = c 
+        for the prolate ellipsoid case.
+    
+    density : float
+        Density of the ellipsoidal body (in kg/m³).
+    
+    lmbda : float or array
+        λ values used in the internal potential field solution, i.e. for the
+        case where λ = 0 inside the ellispoid. Otherwise is 'None' and appropriate λ 
+        values are computed internally based on the observation coordinates. 
 
+    
     Returns
     -------
-    dg1 (float): change in gravity for the x axis. (is this the right explanation?)
-    dg2 (float): change in gravity for the y axis.
-    dg3 (float): change in gravity for the z axis.
-
+    g1 : ndarray
+        Δg₁ component — change in gravity along the local x-axis.
+    
+    g2 : ndarray
+        Δg₂ component — change in gravity along the local y-axis.
+    
+    g3 : ndarray
+        Δg₃ component — change in gravity along the local z-axis.
     """
     # constants
     G = 6.6743e-11
 
     # call and use lambda function 
-    if lmbda==None:
-        lmbda = calculate_lambda(x, y, z, a, b, c)
+    if lmbda is None:
+        lmbda = _calculate_lambda(x, y, z, a, b, c)
     
     # check the function is used for the correct type of ellipsoid
     if not (a > b and b == c):
@@ -196,36 +255,53 @@ def calculate_delta_gs_prolate(x, y, z, a, b, c, density, lmbda=None): # takes s
     
     return dg1, dg2, dg3
 
-def calculate_delta_gs_triaxial(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
+def _get_gravity_triaxial(x, y, z, a, b, c, density, lmbda=None): # takes semiaxes, lambda value, density
     
     """
-    Calculate the components of delta_g_i for i=1,2,3, for the triaxial ellipsoid case.
-    Delta_g_i represent the local axes system (for now, the only axes system). 
-    x, y, z are positions of observation in the local co-ordinate system.
+    Calculate the components of Δg₁, Δg₂, and Δg₃ for the triaxial ellipsoid case (a > b > c).
+    
+    Δgᵢ represents the components of the gravitational field change along the local 
+    principal axes of the ellipsoid.
     
     Parameters
     ----------
-    x, y, z (array, integer): Observation coordinates (2D or 1D)
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-                    NOTE: these must comply with chosen ellipsoid type.
-    density (float): density of the body of interest in kg/m^3
+    x, y, z : array or float
+        Observation coordinates in the local ellipsoid reference frame. 
+        Can be scalars, 1D arrays, or 2D arrays.
+    
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid. Must satisfy the condition a > b > c 
+        for the triaxial ellipsoid case.
+    
+    density : float
+        Density of the ellipsoidal body (in kg/m³).
+    
+    lmbda : float or array
+        λ values used in the internal potential field solution, i.e. for the
+        case where λ = 0 inside the ellispoid. Otherwise is 'None' and appropriate λ 
+        values are computed internally based on the observation coordinates. 
 
+    
     Returns
     -------
-    dg1 (float): change in gravity for the x axis. (is this the right explanation?)
-    dg2 (float): change in gravity for the y axis.
-    dg3 (float): change in gravity for the z axis.
-
+    g1 : ndarray
+        Δg₁ component — change in gravity along the local x-axis.
+    
+    g2 : ndarray
+        Δg₂ component — change in gravity along the local y-axis.
+    
+    g3 : ndarray
+        Δg₃ component — change in gravity along the local z-axis.
     """
     # constants
     G = 6.6743e-11
 
     # call and use calc_lambda abd get_ABC functions 
     # account for the internal case where lmbda=0
-    if lmbda==None:
-        lmbda = calculate_lambda(x, y, z, a, b, c)
+    if lmbda is None:
+        lmbda = _calculate_lambda(x, y, z, a, b, c)
         
-    A_lmbda, B_lmbda, C_lmbda = get_ABC(x, y, z, a, b, c, lmbda)
+    A_lmbda, B_lmbda, C_lmbda = _get_ABC(x, y, z, a, b, c, lmbda)
     
     # check the function is used for the correct type of ellipsoid
     if not (a > b > c):
@@ -242,42 +318,49 @@ def calculate_delta_gs_triaxial(x, y, z, a, b, c, density, lmbda=None): # takes 
     
     return dg1, dg2, dg3
 
-def get_gz_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
-    """
+def _get_gravity_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
     
-    Takes the chosen ellipsoid function, the internal potential function,
-    runs these functions with necessary parameters,
-    and combines into a single array to return a total ellipsoid function for
-    any given coordinate.
+    """"
+    Compute the total gravitational effect of an ellipsoidal body at given observation points.
+    
+    Combines of external and internal g calculations for a given ellispoid.
     
     Parameters
     ----------
-    local_coords (x, y, z): array/coordinate system of the observation points 
-    rotated by some matrix R to be in the local coordinate system of the ellipsoid.
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-                    NOTE: these must comply with chosen ellipsoid type.
-    density (float): density of the body of interest in kg/m^3
-    internal_mask (boolean array): denoting where the surface of the ellipsoid lies
-    where True is inside the ellipsoid.
+    x, y, z : array or float
+        Observation coordinates in the local ellipsoid reference frame. 
+        Can be scalars, 1D arrays, or 2D arrays.
     
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid. Must conform to the constraints of the chosen ellipsoid type.
+    
+    density : float
+        Density of the ellipsoidal body in kg/m³.
+    
+    internal_mask : array_like of bool
+        Boolean mask indicating which observation points lie inside the ellipsoid 
+        (`True` for inside, `False` for outside).
     
     Returns
     -------
-    xresults (array):
-    yresults (array):
-    zresults (array):
+    xresults : ndarray
+        Gravitational field component in the local x-direction.
     
-    NOTES:
-    Get it to produce one output array?
-        
+    yresults : ndarray
+        Gravitational field component in the local y-direction.
+    
+    zresults : ndarray
+        Gravitational field component in the local z-direction.
+    
     """
+
     # select function to use based on ellipsoid parameters
     if (a > b > c):
-        func = calculate_delta_gs_triaxial
+        func = _get_gravity_triaxial
     elif (a > b and b == c):
-        func = calculate_delta_gs_prolate
+        func = _get_gravity_prolate
     elif (a < b and b == c):
-        func = calculate_delta_gs_oblate
+        func = _get_gravity_oblate
 
     
     # create array to hold values
@@ -287,7 +370,7 @@ def get_gz_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
     
     # call functions to produce g values, external and internal
     g_ext_x, g_ext_y, g_ext_z = func(x[~internal_mask], y[~internal_mask], z[~internal_mask], a, b, c, density)
-    g_int_x, g_int_y, g_int_z = calculate_internal_g(x[internal_mask], y[internal_mask], z[internal_mask], a, b, c, density)
+    g_int_x, g_int_y, g_int_z = _get_internal_g(x[internal_mask], y[internal_mask], z[internal_mask], a, b, c, density)
     
     # assign external and internal values to the arrays created
     xresults[internal_mask] = g_int_x

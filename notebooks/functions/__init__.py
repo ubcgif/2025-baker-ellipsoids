@@ -1,5 +1,5 @@
-from .utils import calculate_lambda, get_ellipsoid_mass, get_coords_and_mask 
-from .get_gravity_ellipsoids import calculate_delta_gs_oblate, calculate_delta_gs_prolate, calculate_delta_gs_triaxial, get_ABC, calculate_internal_g, get_gz_array
-from .plots import plot_colourmap_gz, plot_gz_decay_comparison
-from .coord_rotations import get_body_rotation_abg, get_body_rotation_sdr, generate_basic_ellipsoid, global_to_local, get_V_as_Euler
-from .projection import gz_rotated_ellipsoid 
+from .utils import _calculate_lambda
+from .get_gravity_ellipsoids import _get_ABC, _get_gravity_oblate, _get_gravity_triaxial, _get_internal_g, _get_gravity_prolate, _get_gravity_array
+from .coord_rotations import _generate_basic_ellipsoid, _get_V_as_Euler, _global_to_local
+from .projection import ellipsoid_gravity
+from .create_ellipsoid import OblateEllipsoid, ProlateEllipsoid, TriaxialEllipsoid

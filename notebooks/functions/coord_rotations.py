@@ -1,11 +1,4 @@
-# file for doing rotations between global and local coordinate systems.
 
-#definitions for triaxial
-
-# alpha = azimuth of plunge of major axis (a) (clockwise from +x)
-# beta = plunge of major axis (angle between major axis and horizonal)
-# gamma = angle between upwards dorected intermediate axis and vertical plane containing major axis
-# posiitve clockwise (?)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,35 +6,131 @@ from matplotlib import cm
 from scipy.spatial.transform import Rotation as R
 
 
-def get_V_as_Euler(yaw, pitch, roll):
+def _get_V_as_Euler(yaw, pitch, roll):
     """
-    Produce rotation matrix (V) from Tait-Bryan yaw pitch roll axis rotations.
+    Generate a rotation matrix (V) from Tait-Bryan angles: yaw, pitch, and roll.
     
-    parameters
+    Parameters
     ----------
-    Yaw, pitch, roll (float 0<=i<360): angles of rotation in degrees for each 
-    axis, respectively. Rotations are applied in order: 1st = yaw - rotates about the 
-    vertical or z axis, 2nd = pitch - rotates the northing or y axis, and 3rd
-    = roll - rotates the easting or x axis. 
+    yaw : float
+        Rotation about the vertical (z) axis, in degrees.
+    pitch : float
+        Rotation about the northing (y) axis, in degrees.
+    roll : float
+        Rotation about the easting (x) axis, in degrees.
     
+    These rotations are applied in the following order order as above, (zyx).
+   
     Returns
     -------
-    V (matrix): rotation matrix in degrees. NOTE: this produces a matrix which 
-    converts from the local to the global coordinate system, or (intuitively)
-    r.T.
+    V : ndarray of shape (3, 3)
+        Rotation matrix that transforms coordinates from the local ellipsoid-aligned 
+        frame to the global coordinate system. 
+        
+    Notes
+    -----
+    All angles must be given in degrees.
     
     """
-    
-    
+
     # using scipy rotation package
     # this produces the local to global rotation matri (or what would be defined 
     # as R.T from global to local)
     r = R.from_euler('zyx', [yaw, -pitch, roll], degrees=True)
     V = r.as_matrix()
     
-    # add two tests - posiitve pitch means up 
-    # rotating - do i get the expected vector
     return V
+
+
+def _global_to_local(northing, easting, extra_coords, depth, V):
+    
+    """
+    Convert observation points from global coordinates (Northing, Easting, Height) 
+    to local ellipsoid-aligned coordinates (x, y, z).
+    
+    Parameters
+    ----------
+    northing : array_like
+        Northing (Y) coordinates in the global system.
+    
+    easting : array_like
+        Easting (X) coordinates in the global system.
+    
+    extra_coords : array_like
+        Height or vertical offset above the surface (commonly from `vd.grid_coordinates`).
+    
+    depth : float
+        Depth of the ellipsoid’s center below the surface (positive downward).
+    
+    V : ndarray of shape (3, 3)
+        Rotation matrix used to transform from global to local coordinates.
+    
+    Returns
+    -------
+    x, y, z : ndarray
+        Coordinates of the observation points in the local ellipsoid-aligned frame.
+    
+    Notes
+    -----
+    Needs to handle translation component.
+    
+    """
+    
+    # create arrays to hold local coords
+    x = np.ones(northing.shape)
+    y = np.ones(northing.shape)
+    z = np.ones(northing.shape)
+    local_coords = [x, y, z]
+    
+    # calculate local_coords for each x, y, z
+    for i in range(len(local_coords)):
+        local_coords[i] = northing * V[i][0] + easting * V[i][1] \
+            - (depth - extra_coords) * V[i][2]
+            
+    return local_coords
+
+
+
+def _generate_basic_ellipsoid(a, b, c):
+    
+    """
+    Generate the surface of an ellipsoid using spherical angles for 3D plotting.
+    This function is seperate from gravity calculations and is purely for 
+    visualisation of 3D ellipsoids.
+    
+    Parameters
+    ----------
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid along the x, y, and z axes, respectively.
+    
+    Returns
+    -------
+    x1, y1, z1 : ndarray
+        Arrays representing the ellipsoid surface coordinates in 3D space, computed 
+        from spherical angles. T
+
+    """
+
+    
+    # Set of all spherical angles:
+    u = np.linspace(0, 2 * np.pi, 100)
+    v = np.linspace(0, np.pi, 100)
+    
+    # Cartesian coordinates that correspond to the spherical angles:
+        # np.outer is the outer product of the two arrays (ellipsoid surfce)
+    x1 = a * np.outer(np.cos(u), np.sin(v))
+    y1 = b * np.outer(np.sin(u), np.sin(v))
+    z1 = c * np.outer(np.ones_like(u), np.cos(v))
+    
+    return x1, y1, z1
+
+
+
+
+
+##############################################################################
+
+# following functions are not necessary - tested implementations of the paper
 
 def structural_angles_to_abg(strike, dip, rake): # we can decide if this is needed
     """
@@ -193,59 +282,6 @@ def get_body_rotation_abg(alpha, beta, gamma): # in degrees
     
     return V
 
-
-def global_to_local(northing, easting, extra_coords, depth, V):
-    
-    """
-    Conversion of a point from global coordinates, which we refer to as 
-    Northing, easting, height, to local coordinates which we refer to as x, y, z.
-    
-    Parameters
-    ----------
-    abg (list)[alpha, beta, gamma]:
-    sdr (list) [strike, dip, rake]:
-        NOTE: only one of these parameters should be included, otherwise an error
-        will be raised
-        
-    northing, easting, extra_coords (arrays): observation plane to be converted into 
-    local coordinates. NOTE: 'extra_coords' as given in vd.grid_coordinates refers
-    to the height of the plane above the surface. 
-    depth (float): the depth of the body below the surface.
-    
-    Returns
-    -------
-    x, y, z (arrays, floats): Observatin points to convert from global to local
-    
-    NOTES:
-        
-    Currently only translates body below surface, will need to translate body 
-    from an origin point which also varies in northing/easting.
-    
-    """
-    # get unit rotations (V)
-    #if abg!=None:
-    #    V = get_body_rotation_abg(abg[0], abg[1], abg[2])
-    #    
-    #elif sdr!=None:
-    #    V = get_body_rotation_sdr(sdr[0], sdr[1], sdr[2])
-    #else:
-    #    raise ValueError("Input is only required for either alpha-beta-gamma"
-    #                    "OR strike-dip-rake. Please choose one.")
-
-    
-    # create arrays to hold local coords
-    x = np.ones(northing.shape)
-    y = np.ones(northing.shape)
-    z = np.ones(northing.shape)
-    local_coords = [x, y, z]
-    
-    # calculate local_coords for each x, y, z
-    for i in range(len(local_coords)):
-        local_coords[i] = northing * V[i][0] + easting * V[i][1] \
-            - (depth - extra_coords) * V[i][2]
-            
-    return local_coords
-
 # plot the rotation vector as a rotation of the surface.
 def plot_axis_rotation(northing, easting, extra_coords, depth, V):
     """
@@ -271,7 +307,7 @@ def plot_axis_rotation(northing, easting, extra_coords, depth, V):
     """
     
     # get local coordinates via rotation
-    local_coords = global_to_local(northing, easting, extra_coords, depth, V)
+    local_coords = _global_to_local(northing, easting, extra_coords, depth, V)
      
     # plot both original surface and rotated plane
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
@@ -279,34 +315,6 @@ def plot_axis_rotation(northing, easting, extra_coords, depth, V):
     ax.plot_surface(local_coords[0], local_coords[1], local_coords[2], cmap=cm.jet)
     
     return 
-
-
-def generate_basic_ellipsoid(a, b, c):
-    
-    """
-    Generates the basic ellipsoid with spherical angles to be plotted in 3D.
-    
-    parameters
-    ----------
-    a, b, c (floats): semiaxes lengths of the ellipsoid. 
-    
-    returns
-    -------
-    x1, y1, z1: components of the equation of the ellipsoid in spherical coords
-                NOTE: not to be confused with x, y, z (local coord system observation points).
-    """
-    
-    # Set of all spherical angles:
-    u = np.linspace(0, 2 * np.pi, 100)
-    v = np.linspace(0, np.pi, 100)
-    
-    # Cartesian coordinates that correspond to the spherical angles:
-        # np.outer is the outer product of the two arrays (ellipsoid surfce)
-    x1 = a * np.outer(np.cos(u), np.sin(v))
-    y1 = b * np.outer(np.sin(u), np.sin(v))
-    z1 = c * np.outer(np.ones_like(u), np.cos(v))
-    
-    return x1, y1, z1
 
 #x1, y1, z1 = generate_basic_ellipsoid()
 
@@ -329,10 +337,10 @@ def plot_rotated_ellispoid(a, b, c, depth, V):
     None, plots the two ellispoids (one axis)
     """
     # generate ellipsoid as spherical coords to plot
-    x1, y1, z1 = generate_basic_ellipsoid(a, b, c)
+    x1, y1, z1 = _generate_basic_ellipsoid(a, b, c)
     
     # generate rotated ellispoid fromt the original
-    local_coords = global_to_local(x1, y1, z1, V)
+    local_coords = _global_to_local(x1, y1, z1, V)
     
     # create plot
     fig = plt.figure(figsize=plt.figaspect(1))  # Square figure

@@ -2,7 +2,7 @@ import numpy as np
 import verde as vd
 
 
-def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordinates
+def _calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordinates
     
     """
     Calculate the value of lambda (parameter defining surfaces in confocal family,
@@ -52,8 +52,11 @@ def calculate_lambda(x, y, z, a, b, c): # takes semiaxes and observation coordin
 
     return lmbda
 
+##############################################################################
+
+# likely redundant functions
    
-def get_ellipsoid_mass(a, b, c, density):
+def _get_ellipsoid_mass(a, b, c, density):
     """
     Get mass of ellipsoid from volume,
     In order to compare to point mass (spherical) source.
@@ -72,7 +75,7 @@ def get_ellipsoid_mass(a, b, c, density):
 
     return density * volume
 
-def get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
+def _get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
     """
     Return the  coordinates and mask which separates points 
     within the given ellipsoid and on or outside
