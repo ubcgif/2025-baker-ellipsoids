@@ -5,7 +5,7 @@ from .coord_rotations import _get_V_as_Euler
 from .get_gravity_ellipsoids import _get_gravity_array
 
 
-def ellipsoid_gravity(ellipsoid, e, n, u, density):
+def ellipsoid_gravity(ellipsoid, coordinates, density, field="g"):
     
     """
     Compute the three gravity components for an ellipsoidal body at specified o
@@ -77,6 +77,7 @@ def ellipsoid_gravity(ellipsoid, e, n, u, density):
     a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
     yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
     ox, oy, oz = ellipsoid.origin
+    e, n, u = coordinates[0], coordinates[1], coordinates[2]
     
     # preserve ellipsoid shape, translate origin of ellipsoid
     cast = np.broadcast(e, n, u)
@@ -102,4 +103,13 @@ def ellipsoid_gravity(ellipsoid, e, n, u, density):
     g_projected = R @ G
     ge, gn, gu = tuple(c.reshape(cast.shape) for c in g_projected)
     
-    return ge, gn, gu 
+    if field=="e":
+        return ge
+    elif field=="n":
+        return gn
+    elif field=="u":
+        return gu
+    else:
+        return ge, gn, gu
+    
+    
