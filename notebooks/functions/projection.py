@@ -75,7 +75,7 @@ def ellipsoid_gravity(coordinates, ellipsoid, density, field="g"):
     # unpack instances
     a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
     yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
-    ox, oy, oz = ellipsoid.origin
+    ox, oy, oz = ellipsoid.centre
     e, n, u = coordinates[0], coordinates[1], coordinates[2]
 
     # preserve ellipsoid shape, translate origin of ellipsoid
