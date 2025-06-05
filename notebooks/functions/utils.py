@@ -4,21 +4,30 @@ import verde as vd
 
 def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coordinates
     """
-    Calculate the value of lambda (parameter defining surfaces in confocal family,
-    or more simply put, the inflation or deflation parameter), for given ellipsoid semiaxes
-    and given points of observation.
-    x, y, z are positions in the local co-ordinate system.
+    Calculate the value of lambda, the parameter defining surfaces in a confocal family
+    of ellipsoids (i.e., the inflation/deflation parameter), for a given ellipsoid and
+    observation point.
 
     Parameters
     ----------
-    Semiaxes (length) (integer): a, b, c
-    Observation coordinates (integer): x, y, z
-
+    x : float or array
+        X-coordinate(s) of the observation point(s) in the local coordinate system.
+    y : float or array
+        Y-coordinate(s) of the observation point(s).
+    z : float or array
+        Z-coordinate(s) of the observation point(s).
+    a : float
+        Semi-major axis of the ellipsoid along the x-direction.
+    b : float
+        Semi-major axis of the ellipsoid along the y-direction.
+    c : float
+        Semi-major axis of the ellipsoid along the z-direction.
 
     Returns
     -------
-    lambda (float): the value of lambda.
-
+    lmbda : float or array-like
+        The computed value(s) of the lambda parameter.
+        
     """
     # Calculate lambda using x, y, z
 

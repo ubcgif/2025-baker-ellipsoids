@@ -33,11 +33,11 @@ def test_symmetry_ellipsoids():
     _, _, dg3_pro_up = calculate_delta_gs_prolate(10, 0, 0, 3, 2, 2, density=1000)
     _, _, dg3_pro_down = calculate_delta_gs_prolate(-10, 0, 0, 3, 2, 2, density=1000)
 
-    assert (
-        np.allclose(np.abs(dg3_tri_down), np.abs(dg3_tri_up)),
-        np.allclose(np.abs(dg3_pro_down), np.abs(dg3_pro_up)),
-        np.allclose(np.abs(dg3_obl_down), np.abs(dg3_obl_up)),
-    )
+
+    np.testing.assert_allclose(np.abs(dg3_tri_down), np.abs(dg3_tri_up))
+    np.testing.assert_allclose(np.abs(dg3_pro_down), np.abs(dg3_pro_up))
+    np.testing.assert_allclose(np.abs(dg3_obl_down), np.abs(dg3_obl_up))
+   
 
 
 def test_symmetry_prolate_oblate():

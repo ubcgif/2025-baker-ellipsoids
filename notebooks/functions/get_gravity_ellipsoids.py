@@ -1,6 +1,7 @@
 from .utils import _calculate_lambda
 import numpy as np
 from scipy.special import ellipkinc, ellipeinc
+from scipy.constants import gravitational_constant as G
 
 
 def _get_ABC(x, y, z, a, b, c, lmbda):
@@ -162,9 +163,6 @@ def _get_gravity_oblate(
         Δg₃ component — change in gravity along the local z-axis.
     """
 
-    # constants
-    G = 6.6743e-11
-
     # call and use lambda function
     if lmbda is None:
         lmbda = _calculate_lambda(x, y, z, a, b, c)
@@ -238,8 +236,6 @@ def _get_gravity_prolate(
     g3 : ndarray
         Δg₃ component — change in gravity along the local z-axis.
     """
-    # constants
-    G = 6.6743e-11
 
     # call and use lambda function
     if lmbda is None:
@@ -311,9 +307,6 @@ def _get_gravity_triaxial(
     g3 : ndarray
         Δg₃ component — change in gravity along the local z-axis.
     """
-    # constants
-    G = 6.6743e-11
-
     # call and use calc_lambda abd get_ABC functions
     # account for the internal case where lmbda=0
     if lmbda is None:

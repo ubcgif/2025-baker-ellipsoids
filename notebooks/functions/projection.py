@@ -5,7 +5,7 @@ from .coord_rotations import _get_V_as_Euler
 from .get_gravity_ellipsoids import _get_gravity_array
 
 
-def ellipsoid_gravity(ellipsoid, coordinates, density, field="g"):
+def ellipsoid_gravity(coordinates, ellipsoid, density, field="g"):
     """
     Compute the three gravity components for an ellipsoidal body at specified o
     bservation locations.
@@ -106,5 +106,5 @@ def ellipsoid_gravity(ellipsoid, coordinates, density, field="g"):
         return gn
     elif field == "u":
         return gu
-    else:
-        return ge, gn, gu
+    
+    return ge, gn, gu
