@@ -147,7 +147,7 @@ def _get_gravity_oblate(
 
     lmbda : float or array
         λ values used in the internal potential field solution, i.e. for the
-        case where λ = 0 inside the ellispoid. Otherwise is 'None' and appropriate λ
+        case where λ = 0 inside the ellipsoid. Otherwise is 'None' and appropriate λ
         values are computed internally based on the observation coordinates.
 
 
@@ -221,7 +221,7 @@ def _get_gravity_prolate(
 
     lmbda : float or array
         λ values used in the internal potential field solution, i.e. for the
-        case where λ = 0 inside the ellispoid. Otherwise is 'None' and appropriate λ
+        case where λ = 0 inside the ellipsoid. Otherwise is 'None' and appropriate λ
         values are computed internally based on the observation coordinates.
 
 
@@ -292,7 +292,7 @@ def _get_gravity_triaxial(
 
     lmbda : float or array
         λ values used in the internal potential field solution, i.e. for the
-        case where λ = 0 inside the ellispoid. Otherwise is 'None' and appropriate λ
+        case where λ = 0 inside the ellipsoid. Otherwise is 'None' and appropriate λ
         values are computed internally based on the observation coordinates.
 
 
@@ -336,7 +336,7 @@ def _get_gravity_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
     """ "
     Compute the total gravitational effect of an ellipsoidal body at given observation points.
 
-    Combines of external and internal g calculations for a given ellispoid.
+    Combines of external and internal g calculations for a given ellipsoid.
 
     Parameters
     ----------
