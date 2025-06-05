@@ -48,7 +48,7 @@ class TriaxialEllipsoid:
         self.pitch = pitch
         self.roll = roll
 
-        # origin
+        # centre of ellipsoid
         self.centre = centre
 
 
@@ -99,7 +99,7 @@ class ProlateEllipsoid:
         self.yaw = yaw
         self.pitch = pitch
 
-        # origin
+        # centre of ellipsoid
         self.centre = centre
 
     @property
@@ -158,7 +158,7 @@ class OblateEllipsoid:
         self.yaw = yaw
         self.pitch = pitch
 
-        # origin
+        # centre of ellipsoid
         self.centre = centre
 
     @property

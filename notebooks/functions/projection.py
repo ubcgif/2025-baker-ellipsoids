@@ -5,7 +5,7 @@ from .coord_rotations import _get_V_as_Euler
 from .get_gravity_ellipsoids import _get_gravity_array
 
 
-def ellipsoid_gravity(coordinates, ellipsoid, density, field="g"):
+def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     """
     Compute the three gravity components for an ellipsoidal body at specified o
     bservation locations.
@@ -22,7 +22,8 @@ def ellipsoid_gravity(coordinates, ellipsoid, density, field="g"):
 
     ----------
 
-    ellipsoid* : instance of TriaxialEllipsoid, ProlateEllipsoid,
+    ellipsoid* : value, or list of values
+        instance(s) of TriaxialEllipsoid, ProlateEllipsoid,
                  OblateEllipsoid
         Geometric description of the ellipsoid:
             - Semiaxes : a, b, c**
@@ -42,9 +43,10 @@ def ellipsoid_gravity(coordinates, ellipsoid, density, field="g"):
         Upward coordinates, e.g. the surface height desired to compute the
         gravity value. Same shape and rules as 'e'.
 
-    density: float
-        The uniform density of the ellipsoid in kg/m^3.
-
+    density***: float or list
+        The uniform density of the ellipsoid in kg/m^3, or an array of densities
+        for multiple ellipsoid cases, with the same size as 'ellipsoids'. 
+    
 
     Returns
 
@@ -68,37 +70,52 @@ def ellipsoid_gravity(coordinates, ellipsoid, density, field="g"):
     ** : the c value and roll angle are only explicitly defined for trixial
         ellipsoids by definition of the ellipsoid. Otherwise, ProlateEllipsoid
         and OblateEllipsoid take b = c and roll = 0.
+    ***: Must be an array even if multiple ellipsoids are passes, EVEN IF
+        the ellipsoids have the same desnity. 
     Input arrays must match in shape.
 
     """
-
-    # unpack instances
-    a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
-    yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
-    ox, oy, oz = ellipsoid.centre
+    # unpack coordinates and create array to hold final g values
     e, n, u = coordinates[0], coordinates[1], coordinates[2]
-
-    # preserve ellipsoid shape, translate origin of ellipsoid
     cast = np.broadcast(e, n, u)
-    obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
-
-    # create rotation matrix
-    R = _get_V_as_Euler(yaw, pitch, roll)
-
-    # rotate observation points
-    rotated_points = R.T @ obs_points
-    x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
-
-    # create boolean for internal vs external field points
-    internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
-
-    # calculate gravity component for the rotated points
-    gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
-    G = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
-
-    # project onto upward unit vector, axis U
-    g_projected = R @ G
-    ge, gn, gu = tuple(c.reshape(cast.shape) for c in g_projected)
+    ge, gn, gu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
+    
+    # deal with the case of a single ellipsoid being passed
+    if type(ellipsoids) is not list:
+        ellipsoids = [ellipsoids]
+    
+    for ellipsoid in ellipsoids:
+        # unpack instances
+        a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
+        yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
+        ox, oy, oz = ellipsoid.centre
+      
+        # preserve ellipsoid shape, translate origin of ellipsoid
+        cast = np.broadcast(e, n, u)
+        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
+    
+        # create rotation matrix
+        R = _get_V_as_Euler(yaw, pitch, roll)
+    
+        # rotate observation points
+        rotated_points = R.T @ obs_points
+        x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
+    
+        # create boolean for internal vs external field points
+        internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
+    
+        # calculate gravity component for the rotated points
+        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
+        gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
+    
+        # project onto upward unit vector, axis U
+        g_projected = R @ gravity
+        ge_i, gn_i, gu_i = tuple(c.reshape(cast.shape) for c in g_projected)
+        
+        # sum contributions from each ellipsoid
+        ge += ge_i
+        gn += gn_i 
+        gu += gu_i
 
     if field == "e":
         return ge
