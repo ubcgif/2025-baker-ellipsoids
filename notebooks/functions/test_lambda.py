@@ -17,35 +17,36 @@ def test_lambda():
         x**2 / (a**2 + lmbda) + y**2 / (b**2 + lmbda) + z**2 / (c**2 + lmbda), 1.0
     )
 
+
 def test_zero_cases_for_lambda():
     a = 3
     b = 2
     c = 1
-    
+
     #######
-    
+
     x = 0
     y = 0
     z = 5
     lmbda = calculate_lambda(x, y, z, a, b, c)
     lmbda_eqn = z**2 - c**2
     np.testing.assert_allclose(lmbda, lmbda_eqn)
-    
+
     x = 0
     y = 5
     z = 0
     lmbda1 = calculate_lambda(x, y, z, a, b, c)
     lmbda_eqn1 = y**2 - b**2
     np.testing.assert_allclose(lmbda1, lmbda_eqn1)
-    
+
     x = 5
     y = 0
     z = 0
     lmbda2 = calculate_lambda(x, y, z, a, b, c)
     lmbda_eqn2 = x**2 - a**2
     np.testing.assert_allclose(lmbda2, lmbda_eqn2)
-    
-    
+
+
 @pytest.mark.parametrize("zero_coord", ("x", "y", "z"))
 def test_second_order_equations(zero_coord):
     """
