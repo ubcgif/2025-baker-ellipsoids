@@ -83,8 +83,19 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     # deal with the case of a single ellipsoid being passed
     if type(ellipsoids) is not list:
         ellipsoids = [ellipsoids]
+        density = [density]
     
-    for ellipsoid in ellipsoids:
+    # case of multiple ellipsoids but only one density value
+    if type(ellipsoids) is list and type(density) is not list: 
+        raise ValueError("Ellipsoids is a list, but density is not."
+                         "Perhaps multiple arguments were given for ellipsoids"
+                         " but only one value was given for density?")
+        
+    if len(ellipsoids) != len(density):
+        raise ValueError(f"{len(ellipsoids)} arguments were given for ellipsoids"
+                         f" but {len(density)} value(s) were given for density.")
+        
+    for index, ellipsoid in enumerate(ellipsoids):
         # unpack instances
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
@@ -105,7 +116,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
     
         # calculate gravity component for the rotated points
-        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
+        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density[index])
         gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
     
         # project onto upward unit vector, axis U
