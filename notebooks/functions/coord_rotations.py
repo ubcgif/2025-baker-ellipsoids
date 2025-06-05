@@ -328,6 +328,3 @@ def plot_axis_rotation(northing, easting, extra_coords, depth, V):
 
 
 # x1, y1, z1 = generate_basic_ellipsoid()
-
-
-

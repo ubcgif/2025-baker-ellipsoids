@@ -2,32 +2,31 @@
 
 
 class TriaxialEllipsoid:
-    
     """
     Class creates case of a trixial ellipsoid, storing geometric properties.
     Trixial ellipsoids defined as a > b > c, for semiaxes lengths.
-    
+
     Parameters
     ----------
     a, b, c : float
         Semiaxis lengths of the ellipsoid. Must satisfy the condition a > b > c
         for the triaxial ellipsoid case.
-    
+
     yaw : float
         Rotation about the vertical (z) axis, in degrees.
     pitch : float
         Rotation about the northing (y) axis, in degrees.
     roll : float
         Rotation about the easting (x) axis, in degrees.
-    
+
     origin : array
-        (ox, oy, oz) - origin position as an offset from some global 
+        (ox, oy, oz) - origin position as an offset from some global
         coordinate system.
-        
+
     Properties
     ----------
     None.
-    
+
     """
 
     def __init__(self, a, b, c, yaw, pitch, roll, centre):
@@ -57,26 +56,26 @@ class ProlateEllipsoid:
     Class creates case of a prolate ellipsoid, storing geometric properties.
     Prolate ellipsoids defined as a > b = c, for semiaxes lengths. Hence, values
     'c' and 'roll' are not required as input as, by definition, c = b, and roll
-    has no effect due to symmetry, and this is set equal to zero. 
-    
+    has no effect due to symmetry, and this is set equal to zero.
+
     Parameters
     ----------
     a, b: floats
         Semiaxis lengths of the ellipsoid. Must satisfy the condition a > b = c
         for the prolate ellipsoid case.
-    
+
     yaw : float
         Rotation about the vertical (z) axis, in degrees.
     pitch : float
         Rotation about the northing (y) axis, in degrees.
-    
+
     origin : array
-        (ox, oy, oz) - origin position as an offset from some global 
+        (ox, oy, oz) - origin position as an offset from some global
         coordinate system.
-        
+
     Properties
     ----------
-    
+
     c : set equal to b
         Due to the nature of prolate ellipsoids.
     roll : set equal to 0
@@ -116,26 +115,26 @@ class OblateEllipsoid:
     Class creates case of a oblate ellipsoid, storing geometric properties.
     Oblate ellipsoids defined as a < b = c, for semiaxes lengths. Hence, values
     'c' and 'roll' are not required as input as, by definition, c = b, and roll
-    has no effect due to symmetry, and this is set equal to zero. 
-    
+    has no effect due to symmetry, and this is set equal to zero.
+
     Parameters
     ----------
     a, b: floats
         Semiaxis lengths of the ellipsoid. Must satisfy the condition a > b > c
         for the triaxial ellipsoid case.
-    
+
     yaw : float
         Rotation about the vertical (z) axis, in degrees.
     pitch : float
         Rotation about the northing (y) axis, in degrees.
-    
+
     origin : array
-        (ox, oy, oz) - origin position as an offset from some global 
+        (ox, oy, oz) - origin position as an offset from some global
         coordinate system.
-        
+
     Properties
     ----------
-    
+
     c : set equal to b
         Due to the nature of oblate ellipsoids.
     roll : set equal to 0

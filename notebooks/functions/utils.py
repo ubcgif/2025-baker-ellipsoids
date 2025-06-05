@@ -27,7 +27,7 @@ def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coord
     -------
     lmbda : float or array-like
         The computed value(s) of the lambda parameter.
-        
+
     """
     # Calculate lambda using x, y, z
 

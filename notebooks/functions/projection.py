@@ -45,8 +45,8 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
 
     density***: float or list
         The uniform density of the ellipsoid in kg/m^3, or an array of densities
-        for multiple ellipsoid cases, with the same size as 'ellipsoids'. 
-    
+        for multiple ellipsoid cases, with the same size as 'ellipsoids'.
+
 
     Returns
 
@@ -71,7 +71,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         ellipsoids by definition of the ellipsoid. Otherwise, ProlateEllipsoid
         and OblateEllipsoid take b = c and roll = 0.
     ***: Must be an array even if multiple ellipsoids are passes, EVEN IF
-        the ellipsoids have the same desnity. 
+        the ellipsoids have the same desnity.
     Input arrays must match in shape.
 
     """
@@ -79,53 +79,58 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     e, n, u = coordinates[0], coordinates[1], coordinates[2]
     cast = np.broadcast(e, n, u)
     ge, gn, gu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
-    
+
     # deal with the case of a single ellipsoid being passed
     if type(ellipsoids) is not list:
         ellipsoids = [ellipsoids]
         density = [density]
-    
+
     # case of multiple ellipsoids but only one density value
-    if type(ellipsoids) is list and type(density) is not list: 
-        raise ValueError("Ellipsoids is a list, but density is not."
-                         "Perhaps multiple arguments were given for ellipsoids"
-                         " but only one value was given for density?")
-        
+    if type(ellipsoids) is list and type(density) is not list:
+        raise ValueError(
+            "Ellipsoids is a list, but density is not."
+            "Perhaps multiple arguments were given for ellipsoids"
+            " but only one value was given for density?"
+        )
+
+    # case of passing density as a list of differing size to ellipsoids
     if len(ellipsoids) != len(density):
-        raise ValueError(f"{len(ellipsoids)} arguments were given for ellipsoids"
-                         f" but {len(density)} value(s) were given for density.")
-        
+        raise ValueError(
+            f"{len(ellipsoids)} arguments were given for ellipsoids"
+            f" but {len(density)} value(s) were given for density."
+        )
+
     for index, ellipsoid in enumerate(ellipsoids):
         # unpack instances
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
         ox, oy, oz = ellipsoid.centre
-      
+
         # preserve ellipsoid shape, translate origin of ellipsoid
         cast = np.broadcast(e, n, u)
         obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
-    
+
         # create rotation matrix
         R = _get_V_as_Euler(yaw, pitch, roll)
-    
+
         # rotate observation points
         rotated_points = R.T @ obs_points
         x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
-    
+
         # create boolean for internal vs external field points
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
-    
+
         # calculate gravity component for the rotated points
         gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density[index])
         gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
-    
+
         # project onto upward unit vector, axis U
         g_projected = R @ gravity
         ge_i, gn_i, gu_i = tuple(c.reshape(cast.shape) for c in g_projected)
-        
+
         # sum contributions from each ellipsoid
         ge += ge_i
-        gn += gn_i 
+        gn += gn_i
         gu += gu_i
 
     if field == "e":
@@ -134,5 +139,5 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         return gn
     elif field == "u":
         return gu
-    
+
     return ge, gn, gu
