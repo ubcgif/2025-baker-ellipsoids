@@ -11,8 +11,12 @@ from .get_gravity_ellipsoids import get_gz_array
 
 
 def test_ellipsoid_at_distance():
-    """**Idea** to test that the triaxial ellipsoid function produces the same result as the scipy point mass
-    for spherical bodies at distance."""
+    """
+    
+    To test that the triaxial ellipsoid function produces the same 
+    result as the scipy point mass for spherical bodies at distance.
+    
+    """
 
     dg1, dg2, dg3 = calculate_delta_gs_triaxial(0, 0, 100, 3, 2, 1, density=1000)
     mass = 1000 * 4 / 3 * np.pi * 3 * 2 * 1
@@ -21,8 +25,14 @@ def test_ellipsoid_at_distance():
     assert np.allclose(dg3, point_grav)
 
 
-def test_symmetry_ellipsoids():
-    """Test that the gravity anomaly produced shows symmetry across the axes."""
+def test_symmetry_at_surface():
+    """
+
+    Test that the gravity anomaly produced shows symmetry across the axes.
+    E.g., a surface of ellipsoid orientated to global coordinate system would
+    produce an equal but opposite anaomly at surface z=5 and surface z=-5.
+
+    """
 
     _, _, dg3_tri_up = calculate_delta_gs_triaxial(10, 0, 0, 3, 2, 1, density=1000)
     _, _, dg3_tri_down = calculate_delta_gs_triaxial(-10, 0, 0, 3, 2, 1, density=1000)
@@ -38,7 +48,13 @@ def test_symmetry_ellipsoids():
     np.testing.assert_allclose(np.abs(dg3_obl_down), np.abs(dg3_obl_up))
 
 
-def test_symmetry_prolate_oblate():
+def test_symmetry_at_constant_radius():
+    """
+
+    Testing the symmetry around the sperhical cross section of prolate and oblate
+    ellipsoids (axes where b=c).
+
+    """
 
     a, b, c = (3, 2, 2)
     d, f, g = (2, 3, 3)
@@ -65,6 +81,12 @@ def test_symmetry_prolate_oblate():
 
 
 def test_opposite_planes():
+    """
+
+    Test two surfaces produce the same anomaly but 'flipped' when including a
+    rotation in the ellipsoid.
+
+    """
 
     e, n, u1 = vd.grid_coordinates(region=(-10, 10, -10, 10), spacing=1, extra_coords=5)
     e, n, u2 = vd.grid_coordinates(
@@ -76,9 +98,14 @@ def test_opposite_planes():
 
 
 def test_int_ext_boundary():
+    """
+
+    Check that the boundary of the internal and eternal components of the
+    calculation align.
+
+    """
 
     # compare a set value apart
-
     a, b, c = (5, 4, 3)
     x = np.linspace(0, 10, 100)
     y = np.zeros(x.shape)

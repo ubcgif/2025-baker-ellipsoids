@@ -7,6 +7,7 @@ from .get_gravity_ellipsoids import _get_gravity_array
 
 def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     """
+
     Compute the three gravity components for an ellipsoidal body at specified o
     bservation locations.
 
@@ -19,7 +20,6 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     - Returns the gravity field components as arrays
 
     Parameters
-
     ----------
 
     ellipsoid* : value, or list of values
@@ -47,9 +47,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         The uniform density of the ellipsoid in kg/m^3, or an array of densities
         for multiple ellipsoid cases, with the same size as 'ellipsoids'.
 
-
     Returns
-
     -------
 
     ge: ndarray
@@ -97,7 +95,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     if len(ellipsoids) != len(density):
         raise ValueError(
             f"{len(ellipsoids)} arguments were given for ellipsoids"
-            f" but {len(density)} value(s) were given for density."
+            f" but {len(density)} values were given for density."
         )
 
     for index, ellipsoid in enumerate(ellipsoids):

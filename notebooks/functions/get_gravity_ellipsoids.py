@@ -201,7 +201,9 @@ def _get_gravity_prolate(
     x, y, z, a, b, c, density, lmbda=None
 ):  # takes semiaxes, lambda value, density
     """
-    Calculate the components of Δg₁, Δg₂, and Δg₃ for the prolate ellipsoid case (a > b = c).
+
+    Calculate the components of Δg₁, Δg₂, and Δg₃ for the prolate ellipsoid case
+    (a > b = c).
 
     Δgᵢ represents the components of the gravitational field change along the local
     principal axes of the ellipsoid.
