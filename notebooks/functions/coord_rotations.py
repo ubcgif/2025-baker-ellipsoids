@@ -32,7 +32,7 @@ def _get_V_as_Euler(yaw, pitch, roll):
     """
 
     # using scipy rotation package
-    # this produces the local to global rotation matri (or what would be defined
+    # this produces the local to global rotation matrix (or what would be defined
     # as R.T from global to local)
     r = R.from_euler("zyx", [yaw, -pitch, roll], degrees=True)
     V = r.as_matrix()
