@@ -14,3 +14,4 @@ from .coord_rotations import (
 )
 from .projection import ellipsoid_gravity
 from .create_ellipsoid import OblateEllipsoid, ProlateEllipsoid, TriaxialEllipsoid
+from .magnetic_calcs import get_magnetic_components

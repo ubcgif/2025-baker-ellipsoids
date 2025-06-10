@@ -46,7 +46,7 @@ def _depol_oblate_int(a, b, c):
     
     return nxx, nyy, nzz
 
-def _construct_N_matrix_internal(lmbda, x,y,z, a,b,c):
+def _construct_N_matrix_internal(x, y, z, a, b, c, lmbda):
     
     """ Construct the N matrix for the internal field"""
     
@@ -63,7 +63,7 @@ def _construct_N_matrix_internal(lmbda, x,y,z, a,b,c):
     # construct identity matrix
     N = np.eye(3)
     
-    for i in range(len(3)):
+    for i in range(3):
         N[i][i] *= func[i]
     
     return N
@@ -80,7 +80,7 @@ def _get_h_values(a, b, c, lmbda):
     """ Get the h values for the N matrix """
     
     axes = a, b, c 
-    h_i = np.zeros(axes.shape)
+    h_i = np.zeros(3)
     R = np.sqrt(((a**2 + lmbda) * (b**2 + lmbda) * (c**2 + lmbda)))
     for index, value in enumerate(axes):
         h = - 1 / ((value**2 + lmbda) * R)
@@ -92,9 +92,9 @@ def _spatial_deriv_lambda(x, y, z, a, b, c, lmbda):
     
     """ Get the spatial derivative of lambda with respect to the x,y,z """
     
-    r = [x, y, z]
-    e = [a, b, c]
-    vals = np.zeros(e.shape)
+    r = (x, y, z)
+    e = (a, b, c)
+    vals = np.zeros(len(e))
     
     for i in range(len(r)):
         numerator = 2 * r[i] / (e[i]**2 + lmbda)
@@ -103,6 +103,8 @@ def _spatial_deriv_lambda(x, y, z, a, b, c, lmbda):
     return vals
 
 def _get_g_values_magnetics(x, y, z, a, b, c, lmbda):
+    
+    """Get the gravity values for the three ellipsoid types."""
     
     gvals = np.zeros(3)
     if (a > b > c):
@@ -176,14 +178,20 @@ def get_magnetic_components(x, y, z, a, b, c, yaw, pitch, roll, k, H0, mu0):
         N = _construct_N_matrix_external(x, y, z, a, b, c, lmbda)
         
     Nr = R.T @ N @ R
-    H_cross = np.det((np.eye + N_cross @ K)) @ H0
-    Hr = H0 + Nr @ K @ H_cross
+    H_cross = np.linalg.inv(np.eye(3) + N_cross @ K) @ H0
+    Hr = H0 + (Nr @ K) @ H_cross
     Br = 1e9 * mu0 * Hr
     
-    return Br
-    
-    
-    
+    return H_cross, Br
+lmbda = _calculate_lambda(5, 5, 5, 3, 2, 1)
+N = _construct_N_matrix_external(5, 5, 5, 3, 2, 1, lmbda)
+N_int = _construct_N_matrix_internal(5, 5, 5, 3, 2, 1, lmbda)
+print("N:", N, N.shape)
+print("N_int:", N_int, N_int.shape)
+#print("Nr:", Nr.shape)
+#print("K:", K.shape)
+#print("H_cross:", np.shape(H_cross))
+#print("H0:", H0.shape)
 # how to construct the nii and nij given there is a derivative??
 # otherwise just extract the gi components and add them to the h components using 
 # the equations on pafe 3596 takenhashi 
