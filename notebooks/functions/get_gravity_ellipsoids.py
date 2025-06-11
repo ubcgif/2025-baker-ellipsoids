@@ -4,7 +4,7 @@ from scipy.special import ellipkinc, ellipeinc
 from scipy.constants import gravitational_constant as G
 
 
-def _get_ABC(x, y, z, a, b, c, lmbda):
+def _get_ABC(a, b, c, lmbda):
     """
     Compute the A(λ), B(λ), and C(λ) functions using elliptic integrals, as
     required for potiential field calculations of ellipsoidal bodies.
@@ -314,7 +314,7 @@ def _get_gravity_triaxial(
     if lmbda is None:
         lmbda = _calculate_lambda(x, y, z, a, b, c)
 
-    A_lmbda, B_lmbda, C_lmbda = _get_ABC(x, y, z, a, b, c, lmbda)
+    A_lmbda, B_lmbda, C_lmbda = _get_ABC(a, b, c, lmbda)
 
     # check the function is used for the correct type of ellipsoid
     if not (a > b > c):
