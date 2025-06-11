@@ -12,10 +12,10 @@ from .get_gravity_ellipsoids import get_gz_array
 
 def test_ellipsoid_at_distance():
     """
-    
-    To test that the triaxial ellipsoid function produces the same 
+
+    To test that the triaxial ellipsoid function produces the same
     result as the scipy point mass for spherical bodies at distance.
-    
+
     """
 
     dg1, dg2, dg3 = calculate_delta_gs_triaxial(0, 0, 100, 3, 2, 1, density=1000)

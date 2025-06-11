@@ -401,4 +401,3 @@ def _get_gravity_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
     zresults[~internal_mask] = g_ext_z
 
     return xresults, yresults, zresults
-
