@@ -1,13 +1,15 @@
 from .get_gravity_ellipsoids import (
-    calculate_delta_gs_triaxial,
-    calculate_delta_gs_oblate,
-    calculate_delta_gs_prolate,
-)
+  _get_gravity_oblate,
+  _get_gravity_triaxial,
+  _get_internal_g,
+  _get_gravity_prolate,
+  )
 import numpy as np
 from choclo.point import gravity_u as pointgrav
 import verde as vd
-from .projection import gz_rotated_ellipsoid
-from .get_gravity_ellipsoids import get_gz_array
+from .projection import ellipsoid_gravity
+from .get_gravity_ellipsoids import _get_gravity_array
+from .create_ellipsoid import TriaxialEllipsoid
 
 
 def test_ellipsoid_at_distance():
@@ -18,7 +20,7 @@ def test_ellipsoid_at_distance():
 
     """
 
-    dg1, dg2, dg3 = calculate_delta_gs_triaxial(0, 0, 100, 3, 2, 1, density=1000)
+    dg1, dg2, dg3 = _get_gravity_triaxial(0, 0, 100, 3, 2, 1, density=1000)
     mass = 1000 * 4 / 3 * np.pi * 3 * 2 * 1
     point_grav = pointgrav(0, 0, 100, 0, 0, 0, mass)
 
@@ -34,14 +36,14 @@ def test_symmetry_at_surface():
 
     """
 
-    _, _, dg3_tri_up = calculate_delta_gs_triaxial(10, 0, 0, 3, 2, 1, density=1000)
-    _, _, dg3_tri_down = calculate_delta_gs_triaxial(-10, 0, 0, 3, 2, 1, density=1000)
+    _, _, dg3_tri_up = _get_gravity_triaxial(10, 0, 0, 3, 2, 1, density=1000)
+    _, _, dg3_tri_down = _get_gravity_triaxial(-10, 0, 0, 3, 2, 1, density=1000)
 
-    _, _, dg3_obl_up = calculate_delta_gs_oblate(10, 0, 0, 1, 3, 3, density=1000)
-    _, _, dg3_obl_down = calculate_delta_gs_oblate(-10, 0, 0, 1, 3, 3, density=1000)
+    _, _, dg3_obl_up = _get_gravity_oblate(10, 0, 0, 1, 3, 3, density=1000)
+    _, _, dg3_obl_down = _get_gravity_oblate(-10, 0, 0, 1, 3, 3, density=1000)
 
-    _, _, dg3_pro_up = calculate_delta_gs_prolate(10, 0, 0, 3, 2, 2, density=1000)
-    _, _, dg3_pro_down = calculate_delta_gs_prolate(-10, 0, 0, 3, 2, 2, density=1000)
+    _, _, dg3_pro_up = _get_gravity_prolate(10, 0, 0, 3, 2, 2, density=1000)
+    _, _, dg3_pro_down = _get_gravity_prolate(-10, 0, 0, 3, 2, 2, density=1000)
 
     np.testing.assert_allclose(np.abs(dg3_tri_down), np.abs(dg3_tri_up))
     np.testing.assert_allclose(np.abs(dg3_pro_down), np.abs(dg3_pro_up))
@@ -65,9 +67,9 @@ def test_symmetry_at_constant_radius():
     n = R * np.cos(theta)
     u = R * np.sin(theta)
 
-    _, ogn, ogu = calculate_delta_gs_oblate(e, n, u, d, f, g, density=1000)
+    _, ogn, ogu = _get_gravity_oblate(e, n, u, d, f, g, density=1000)
 
-    _, pgn, pgu = calculate_delta_gs_prolate(e, n, u, a, b, c, density=1000)
+    _, pgn, pgu = _get_gravity_prolate(e, n, u, a, b, c, density=1000)
 
     for i in range(19):
         np.testing.assert_allclose(
@@ -87,13 +89,20 @@ def test_opposite_planes():
     rotation in the ellipsoid.
 
     """
+    a, b, c = (4, 3, 2) # triaxial ellipsoid
+    yaw = 90
+    pitch = 0
+    roll = 0
+    n = [1, 2, 3]
+    triaxial_example = TriaxialEllipsoid(a, b, c, yaw, pitch, roll, (0, 0, 0))
+    density = 2000
+    
+    # define observation points (2D grid) at surface height (z axis, 'Upward') = 5
+    coordinates1 = vd.grid_coordinates(region = (-20, 20, -20, 20), spacing = 0.5, extra_coords = 5)
+    coordinates2 = vd.grid_coordinates(region = (-20, 20, -20, 20), spacing = 0.5, extra_coords = -5)
 
-    e, n, u1 = vd.grid_coordinates(region=(-10, 10, -10, 10), spacing=1, extra_coords=5)
-    e, n, u2 = vd.grid_coordinates(
-        region=(-10, 10, -10, 10), spacing=1, extra_coords=-5
-    )
-    _, _, gu1 = gz_rotated_ellipsoid(5, 4, 3, 0, 30, 0, e, n, u1, density=1000)
-    _, _, gu2 = gz_rotated_ellipsoid(5, 4, 3, 0, 30, 0, e, n, u2, density=1000)
+    _, _, gu1 = ellipsoid_gravity(coordinates1, triaxial_example, 2000, field="g")
+    _, _, gu2 = ellipsoid_gravity(coordinates2, triaxial_example, 2000, field="g")
     np.testing.assert_allclose(gu1, -np.flip(gu2))
 
 
@@ -112,6 +121,7 @@ def test_int_ext_boundary():
     z = np.zeros(x.shape)
     internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
-    ge, _, _ = get_gz_array(internal_mask, 5, 4, 3, x, y, z, density=1000)
+
+    ge, _, _ = _get_gravity_array(internal_mask, 5, 4, 3, x, y, z, density=1000)
     first_false = np.argmax(~internal_mask)
     np.testing.assert_allclose(ge[first_false], ge[first_false - 1], atol=1e-06)
