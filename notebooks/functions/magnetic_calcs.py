@@ -427,7 +427,7 @@ def get_magnetic_components(coordinates, ellipsoids, k, H0, field="b"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # create K matrix
-        K = k * np.eye(3)
+        K = k[index] * np.eye(3)
 
         # create N matricies for each given point
         for i, j in np.ndindex(lmbda.shape):
@@ -435,7 +435,7 @@ def get_magnetic_components(coordinates, ellipsoids, k, H0, field="b"):
             xi, yi, zi = x[i, j], y[i, j], z[i, j]
             is_internal = internal_mask[i, j]
 
-            N_cross = _construct_N_matrix_internal(xi, yi, zi, a, b, c, lam)
+            N_cross = _construct_N_matrix_internal(a, b, c)
 
             if is_internal:
                 N = N_cross
