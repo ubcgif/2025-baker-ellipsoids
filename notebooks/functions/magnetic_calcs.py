@@ -316,7 +316,7 @@ def _construct_N_matrix_external(x, y, z, a, b, c, lmbda):
 # just for 1 obs point rn
 
 
-def get_magnetic_components(coordinates, ellipsoids, k, H0, field="b"):
+def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
     """
     Produces the components for the magnetic field components (be, bn, bu):
 
