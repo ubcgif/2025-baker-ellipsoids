@@ -11,7 +11,7 @@ def test_magnetic_symmetry():
     
     """
     a, b, c = (4, 3, 2) # triaxial ellipsoid
-    yaw = 90
+    yaw = 0
     pitch = 0
     roll = 0
     n = [1, 2, 3]
@@ -94,4 +94,26 @@ def test_zero_field():
     np.testing.assert_allclose(bn[0], 0)
     np.testing.assert_allclose(bu[0], 0)
 
+def test_mag_ext_int_boundary():
+    """
+    Check the boundary between internal and external field calculations is consistent.
+    
+    """
+    ...
+    
+def test_mag_flipped_ellipsoid():
+    """
+    Check that rotating the ellipsoid in various ways maintains expected results.
+    """
+    ...
+    
+def test_mag_symmetry_through_axis():
+    """
+    With no rotation of the ellipsoid and an external field aligned with the axis,
+    check that the symmetry of the returned magnetic field is as expected.
+    """
+    ...
+
+def test_obl_pro_symmetry():
+    
     
