@@ -1,124 +1,9 @@
+from .utils import _global_to_local
+
+import verde as vd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from scipy.spatial.transform import Rotation as R
-
-
-def _get_V_as_Euler(yaw, pitch, roll):
-    """
-    Generate a rotation matrix (V) from Tait-Bryan angles: yaw, pitch, and roll.
-
-    Parameters
-    ----------
-    yaw : float
-        Rotation about the vertical (z) axis, in degrees.
-    pitch : float
-        Rotation about the northing (y) axis, in degrees.
-    roll : float
-        Rotation about the easting (x) axis, in degrees.
-
-    These rotations are applied in the following order order as above, (zyx).
-
-    Returns
-    -------
-    V : ndarray of shape (3, 3)
-        Rotation matrix that transforms coordinates from the local ellipsoid-aligned
-        frame to the global coordinate system.
-
-    Notes
-    -----
-    All angles must be given in degrees.
-
-    """
-
-    # using scipy rotation package
-    # this produces the local to global rotation matrix (or what would be defined
-    # as R.T from global to local)
-    r = R.from_euler("zyx", [yaw, -pitch, roll], degrees=True)
-    V = r.as_matrix()
-
-    return V
-
-
-def _global_to_local(northing, easting, extra_coords, depth, V):
-    """
-    Convert observation points from global coordinates (Northing, Easting, Height)
-    to local ellipsoid-aligned coordinates (x, y, z).
-
-    Parameters
-    ----------
-    northing : array_like
-        Northing (Y) coordinates in the global system.
-
-    easting : array_like
-        Easting (X) coordinates in the global system.
-
-    extra_coords : array_like
-        Height or vertical offset above the surface (commonly from `vd.grid_coordinates`).
-
-    depth : float
-        Depth of the ellipsoid’s center below the surface (positive downward).
-
-    V : ndarray of shape (3, 3)
-        Rotation matrix used to transform from global to local coordinates.
-
-    Returns
-    -------
-    x, y, z : ndarray
-        Coordinates of the observation points in the local ellipsoid-aligned frame.
-
-    Notes
-    -----
-    Needs to handle translation component.
-
-    """
-
-    # create arrays to hold local coords
-    x = np.ones(northing.shape)
-    y = np.ones(northing.shape)
-    z = np.ones(northing.shape)
-    local_coords = [x, y, z]
-
-    # calculate local_coords for each x, y, z
-    for i in range(len(local_coords)):
-        local_coords[i] = (
-            northing * V[i][0] + easting * V[i][1] - (depth - extra_coords) * V[i][2]
-        )
-
-    return local_coords
-
-
-def _generate_basic_ellipsoid(a, b, c):
-    """
-    Generate the surface of an ellipsoid using spherical angles for 3D plotting.
-    This function is seperate from gravity calculations and is purely for
-    visualisation of 3D ellipsoids.
-
-    Parameters
-    ----------
-    a, b, c : float
-        Semiaxis lengths of the ellipsoid along the x, y, and z axes, respectively.
-
-    Returns
-    -------
-    x1, y1, z1 : ndarray
-        Arrays representing the ellipsoid surface coordinates in 3D space, computed
-        from spherical angles. T
-
-    """
-
-    # Set of all spherical angles:
-    u = np.linspace(0, 2 * np.pi, 100)
-    v = np.linspace(0, np.pi, 100)
-
-    # Cartesian coordinates that correspond to the spherical angles:
-    # np.outer is the outer product of the two arrays (ellipsoid surfce)
-    x1 = a * np.outer(np.cos(u), np.sin(v))
-    y1 = b * np.outer(np.sin(u), np.sin(v))
-    z1 = c * np.outer(np.ones_like(u), np.cos(v))
-
-    return x1, y1, z1
-
 
 ##############################################################################
 
@@ -328,3 +213,58 @@ def plot_axis_rotation(northing, easting, extra_coords, depth, V):
 
 
 # x1, y1, z1 = generate_basic_ellipsoid()
+
+
+def _get_ellipsoid_mass(a, b, c, density):
+    """
+    Get mass of ellipsoid from volume,
+    In order to compare to point mass (spherical) source.
+
+    Parameters
+    ----------
+    a, b, c (m) = ellipsoid semiaxes
+    density (kg/m^3) = uniform density of the ellipsoid
+
+    Returns
+    -------
+    mass of the ellpsoid (kg)
+
+    """
+    volume = 4 / 3 * np.pi * a * b * c
+
+    return density * volume
+
+
+def _get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
+    """
+    Return the  coordinates and mask which separates points
+    within the given ellipsoid and on or outside
+    of the given ellipsoid.
+
+    Parameters
+    ----------
+    region (list)(W, E, S, N): end points of the coordinate grid
+    spacing (float): separation between the points (default = 1)
+    extra_coords (float or list): surfaces of constant height to test (default = 0)
+    a, b, c (float): semiaxes of the ellipsoid
+
+    Returns
+    -------
+    x, y, z (arrays): 2D coordinate arrays for grid
+    internal (array): mask for the internal points of the ellipsoid
+
+    NOTES:
+    Consider making it possible to pass a varying array as a set of z coords.
+    """
+    if topo_h == None:
+        e, n, u = vd.grid_coordinates(
+            region=region, spacing=spacing, extra_coords=extra_coords
+        )
+
+    else:
+        e, n = vd.grid_coordinates(region=region, spacing=spacing)
+        u = topo_h * np.exp(-(e**2) / (np.max(e) ** 2) - n**2 / (np.max(n) ** 2))
+
+    internal = (e**2) / (a**2) + (n**2) / (b**2) + (u**2) / (c**2) < 1
+
+    return e, n, u, internal

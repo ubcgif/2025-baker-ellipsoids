@@ -1,13 +1,159 @@
 # calculations to approximate magnetic field
 
-from .get_gravity_ellipsoids import _get_ABC
-from .coord_rotations import _get_V_as_Euler
-from .utils import _calculate_lambda
+from .ellipsoid_gravity import _get_ABC
+from .utils import (_get_V_as_Euler, _calculate_lambda)
+
 import numpy as np
 from scipy.special import ellipkinc, ellipeinc
 from scipy.constants import mu_0
 
 # internal field N matrix functions
+
+def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
+    """
+    Produces the components for the magnetic field components (be, bn, bu):
+
+        - Unpacks ellipsoid instance parameters (a, b, c, yaw, pitch, roll, origin)
+        - Constructs Euler rotation matrix
+        - Rotates observation points (e, n, u) into local ellipsoid system (x, y, z)
+        - constructs susceptability matrix and depolarisation matrix for internal
+          and external points of observation
+        - Calculates the magentic field due to the magnetised ellipsoid (H())
+        - Converts this to magentic induction (B()) in nT.
+
+    Parameters
+    ----------
+
+    coordinates: tuple of easting (e), northing (n), upward (u) points
+        e : ndarray
+            Easting coordinates, in the form:
+                - A scalar value (float or int)
+                - A 1D array of shape (N,)
+                - A 2D array (meshgrid) of shape (M, N)
+
+        n : ndarray
+            Northing coordinates, same shape and rules as 'e'.
+
+        u : ndarray
+            Upward coordinates, e.g. the surface height desired to compute the
+            gravity value. Same shape and rules as 'e'.
+
+
+    ellipsoid* : value, or list of values
+        instance(s) of TriaxialEllipsoid, ProlateEllipsoid,
+                 OblateEllipsoid
+        Geometric description of the ellipsoid:
+            - Semiaxes : a, b, c**
+            - Orientation : yaw, pitch, roll**
+            - Origin : centre point (x, y, z)
+
+    k : float or list of floats
+        Susceptibilty value. Assumes isotropy within the body. Should be of the
+        same length as the number of ellipsoids given.
+
+    H0 : ndarray
+        Three components of the uniform inducing field.
+
+    field : (optional) str, one of either "e", "n", "u".
+        if no input is given, the function will return all three components of
+        magentic induction.
+
+    Returns
+    -------
+
+    be: ndarray
+        Easting component of the magnetic field.
+
+    bn ndarray
+        Northing component of the magnetic field.
+
+    bu: ndarray
+        Upward component of the magnetic field.
+
+    NOTES
+    -----
+
+    """
+    # unpack coordinates, set up arrays to hold results
+    e, n, u = coordinates[0], coordinates[1], coordinates[2]
+    cast = np.broadcast(e, n, u)
+    be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
+
+    # check inputs are of the correct type
+    if type(ellipsoids) is not list:
+        ellipsoids = [ellipsoids]
+
+    if type(k) is not list:
+        k = [k]
+
+    if len(ellipsoids) != len(k):
+        raise ValueError(
+            "Magnetic susceptibilty must be a list containing the value"
+            " of k for each ellipsoid. Instead, number of ellipsoids"
+            f" given is {len(ellipsoids)} and number of k values is"
+            f" {len(k)}."
+        )
+
+    if type(H0) is not np.ndarray:
+        raise ValueError("H0 values of the regional field  must be an array.")
+
+    # loop over each given ellipsoid
+    for index, ellipsoid in enumerate(ellipsoids):
+
+        # unpack instance
+        a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
+        yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
+        ox, oy, oz = ellipsoid.centre
+
+        # preserve ellipsoid shape, translate origin of ellipsoid
+        cast = np.broadcast(e, n, u)
+        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
+
+        # get observation points, rotate them
+        R = _get_V_as_Euler(yaw, pitch, roll)
+        rotated_points = R.T @ obs_points
+        x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
+
+        # create boolean for internal vs external field points
+        # and compute lambda for each coordinate point
+        lmbda = _calculate_lambda(x, y, z, a, b, c)
+        internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
+
+        # create K matrix
+        K = k[index] * np.eye(3)
+
+        # create N matricies for each given point
+        for i, j in np.ndindex(lmbda.shape):
+            lam = lmbda[i, j]
+            xi, yi, zi = x[i, j], y[i, j], z[i, j]
+            is_internal = internal_mask[i, j]
+
+            N_cross = _construct_N_matrix_internal(a, b, c)
+
+            if is_internal:
+                N = N_cross
+            else:
+                N = _construct_N_matrix_external(xi, yi, zi, a, b, c, lam)
+
+            # compute rotation and final H() values
+            Nr = R.T @ N @ R
+            H_cross = np.linalg.inv(np.eye(3) + N_cross @ K) @ H0
+            Hr = H0 + (Nr @ K) @ H_cross
+
+            # sum across all components and ellipsoids
+            be[i, j] += 1e9 * mu_0 * Hr[0]
+            bn[i, j] += 1e9 * mu_0 * Hr[1]
+            bu[i, j] += 1e9 * mu_0 * Hr[2]
+
+    # return according to user
+    if field == "e":
+        return be
+    elif field == "n":
+        return bn
+    elif field == "u":
+        return bu
+
+    return be, bn, bu
 
 
 def _depol_triaxial_int(a, b, c):
@@ -314,150 +460,3 @@ def _construct_N_matrix_external(x, y, z, a, b, c, lmbda):
 
 # construct total magnetic components
 # just for 1 obs point rn
-
-
-def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
-    """
-    Produces the components for the magnetic field components (be, bn, bu):
-
-        - Unpacks ellipsoid instance parameters (a, b, c, yaw, pitch, roll, origin)
-        - Constructs Euler rotation matrix
-        - Rotates observation points (e, n, u) into local ellipsoid system (x, y, z)
-        - constructs susceptability matrix and depolarisation matrix for internal
-          and external points of observation
-        - Calculates the magentic field due to the magnetised ellipsoid (H())
-        - Converts this to magentic induction (B()) in nT.
-
-    Parameters
-    ----------
-
-    coordinates: tuple of easting (e), northing (n), upward (u) points
-        e : ndarray
-            Easting coordinates, in the form:
-                - A scalar value (float or int)
-                - A 1D array of shape (N,)
-                - A 2D array (meshgrid) of shape (M, N)
-
-        n : ndarray
-            Northing coordinates, same shape and rules as 'e'.
-
-        u : ndarray
-            Upward coordinates, e.g. the surface height desired to compute the
-            gravity value. Same shape and rules as 'e'.
-
-
-    ellipsoid* : value, or list of values
-        instance(s) of TriaxialEllipsoid, ProlateEllipsoid,
-                 OblateEllipsoid
-        Geometric description of the ellipsoid:
-            - Semiaxes : a, b, c**
-            - Orientation : yaw, pitch, roll**
-            - Origin : centre point (x, y, z)
-
-    k : float or list of floats
-        Susceptibilty value. Assumes isotropy within the body. Should be of the
-        same length as the number of ellipsoids given.
-
-    H0 : ndarray
-        Three components of the uniform inducing field.
-
-    field : (optional) str, one of either "e", "n", "u".
-        if no input is given, the function will return all three components of
-        magentic induction.
-
-    Returns
-    -------
-
-    be: ndarray
-        Easting component of the magnetic field.
-
-    bn ndarray
-        Northing component of the magnetic field.
-
-    bu: ndarray
-        Upward component of the magnetic field.
-
-    NOTES
-    -----
-
-    """
-    # unpack coordinates, set up arrays to hold results
-    e, n, u = coordinates[0], coordinates[1], coordinates[2]
-    cast = np.broadcast(e, n, u)
-    be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
-
-    # check inputs are of the correct type
-    if type(ellipsoids) is not list:
-        ellipsoids = [ellipsoids]
-
-    if type(k) is not list:
-        k = [k]
-
-    if len(ellipsoids) != len(k):
-        raise ValueError(
-            "Magnetic susceptibilty must be a list containing the value"
-            " of k for each ellipsoid. Instead, number of ellipsoids"
-            f" given is {len(ellipsoids)} and number of k values is"
-            f" {len(k)}."
-        )
-
-    if type(H0) is not np.ndarray:
-        raise ValueError("H0 values of the regional field  must be an array.")
-
-    # loop over each given ellipsoid
-    for index, ellipsoid in enumerate(ellipsoids):
-
-        # unpack instance
-        a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
-        yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
-        ox, oy, oz = ellipsoid.centre
-
-        # preserve ellipsoid shape, translate origin of ellipsoid
-        cast = np.broadcast(e, n, u)
-        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
-
-        # get observation points, rotate them
-        R = _get_V_as_Euler(yaw, pitch, roll)
-        rotated_points = R.T @ obs_points
-        x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
-
-        # create boolean for internal vs external field points
-        # and compute lambda for each coordinate point
-        lmbda = _calculate_lambda(x, y, z, a, b, c)
-        internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
-
-        # create K matrix
-        K = k[index] * np.eye(3)
-
-        # create N matricies for each given point
-        for i, j in np.ndindex(lmbda.shape):
-            lam = lmbda[i, j]
-            xi, yi, zi = x[i, j], y[i, j], z[i, j]
-            is_internal = internal_mask[i, j]
-
-            N_cross = _construct_N_matrix_internal(a, b, c)
-
-            if is_internal:
-                N = N_cross
-            else:
-                N = _construct_N_matrix_external(xi, yi, zi, a, b, c, lam)
-
-            # compute rotation and final H() values
-            Nr = R.T @ N @ R
-            H_cross = np.linalg.inv(np.eye(3) + N_cross @ K) @ H0
-            Hr = H0 + (Nr @ K) @ H_cross
-
-            # sum across all components and ellipsoids
-            be[i, j] += 1e9 * mu_0 * Hr[0]
-            bn[i, j] += 1e9 * mu_0 * Hr[1]
-            bu[i, j] += 1e9 * mu_0 * Hr[2]
-
-    # return according to user
-    if field == "e":
-        return be
-    elif field == "n":
-        return bn
-    elif field == "u":
-        return bu
-
-    return be, bn, bu
