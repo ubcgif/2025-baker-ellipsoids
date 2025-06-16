@@ -1,20 +1,21 @@
-from .get_gravity_ellipsoids import (
+from .ellipsoid_gravity import (
     _get_gravity_oblate,
     _get_gravity_triaxial,
     _get_internal_g,
     _get_gravity_prolate,
+    _get_gravity_array,
+    ellipsoid_gravity
 )
 import numpy as np
 from choclo.point import gravity_u as pointgrav
 import verde as vd
-from .projection import ellipsoid_gravity
-from .get_gravity_ellipsoids import _get_gravity_array
 from .create_ellipsoid import TriaxialEllipsoid, OblateEllipsoid, ProlateEllipsoid
 
 def test_degenerate_ellipsoid_cases():
     """
 
-    Test cases where the axes lengths are close to the boundary of accepted values.
+    Test cases where the ellipsoid axes lengths are close to the boundary of 
+    accepted values.
 
     """
     tri = TriaxialEllipsoid(5, 4.99999999, 4.99999998, 0, 0, 0, (0, 0, 0))

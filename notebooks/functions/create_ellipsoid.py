@@ -1,5 +1,5 @@
 # definitions of ellipsoid classes to pass into the functions
-
+import numpy as np
 
 class TriaxialEllipsoid:
     """
@@ -167,3 +167,35 @@ class OblateEllipsoid:
     @property
     def roll(self):
         return 0.0
+    
+    
+def _generate_basic_ellipsoid(a, b, c):
+    """
+    Generate the surface of an ellipsoid using spherical angles for 3D plotting.
+    This function is seperate from gravity calculations and is purely for
+    visualisation of 3D ellipsoids.
+    
+    Parameters
+    ----------
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid along the x, y, and z axes, respectively.
+    
+    Returns
+    -------
+    x1, y1, z1 : ndarray
+        Arrays representing the ellipsoid surface coordinates in 3D space, computed
+        from spherical angles. T
+    
+    """
+    
+    # Set of all spherical angles:
+    u = np.linspace(0, 2 * np.pi, 100)
+    v = np.linspace(0, np.pi, 100)
+    
+    # Cartesian coordinates that correspond to the spherical angles:
+    # np.outer is the outer product of the two arrays (ellipsoid surfce)
+    x1 = a * np.outer(np.cos(u), np.sin(v))
+    y1 = b * np.outer(np.sin(u), np.sin(v))
+    z1 = c * np.outer(np.ones_like(u), np.cos(v))
+
+    return x1, y1, z1

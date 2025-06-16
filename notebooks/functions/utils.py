@@ -1,6 +1,8 @@
 import numpy as np
 import verde as vd
-
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from scipy.spatial.transform import Rotation as R
 
 def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coordinates
     """
@@ -69,6 +71,90 @@ def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coord
     lmbda = 2 * np.sqrt((-p / 3)) * np.cos(theta / 3) - p_2 / 3
 
     return lmbda
+
+def _get_V_as_Euler(yaw, pitch, roll):
+    """
+    Generate a rotation matrix (V) from Tait-Bryan angles: yaw, pitch, and roll.
+
+    Parameters
+    ----------
+    yaw : float
+        Rotation about the vertical (z) axis, in degrees.
+    pitch : float
+        Rotation about the northing (y) axis, in degrees.
+    roll : float
+        Rotation about the easting (x) axis, in degrees.
+
+    These rotations are applied in the following order order as above, (zyx).
+
+    Returns
+    -------
+    V : ndarray of shape (3, 3)
+        Rotation matrix that transforms coordinates from the local ellipsoid-aligned
+        frame to the global coordinate system.
+
+    Notes
+    -----
+    All angles must be given in degrees.
+
+    """
+
+    # using scipy rotation package
+    # this produces the local to global rotation matrix (or what would be defined
+    # as R.T from global to local)
+    r = R.from_euler("zyx", [yaw, -pitch, roll], degrees=True)
+    V = r.as_matrix()
+
+    return V
+
+
+def _global_to_local(northing, easting, extra_coords, depth, V):
+    """
+    Convert observation points from global coordinates (Northing, Easting, Height)
+    to local ellipsoid-aligned coordinates (x, y, z).
+
+    Parameters
+    ----------
+    northing : array_like
+        Northing (Y) coordinates in the global system.
+
+    easting : array_like
+        Easting (X) coordinates in the global system.
+
+    extra_coords : array_like
+        Height or vertical offset above the surface (commonly from `vd.grid_coordinates`).
+
+    depth : float
+        Depth of the ellipsoid’s center below the surface (positive downward).
+
+    V : ndarray of shape (3, 3)
+        Rotation matrix used to transform from global to local coordinates.
+
+    Returns
+    -------
+    x, y, z : ndarray
+        Coordinates of the observation points in the local ellipsoid-aligned frame.
+
+    Notes
+    -----
+    Needs to handle translation component.
+
+    """
+
+    # create arrays to hold local coords
+    x = np.ones(northing.shape)
+    y = np.ones(northing.shape)
+    z = np.ones(northing.shape)
+    local_coords = [x, y, z]
+
+    # calculate local_coords for each x, y, z
+    for i in range(len(local_coords)):
+        local_coords[i] = (
+            northing * V[i][0] + easting * V[i][1] - (depth - extra_coords) * V[i][2]
+        )
+
+    return local_coords
+
 
 
 ##############################################################################

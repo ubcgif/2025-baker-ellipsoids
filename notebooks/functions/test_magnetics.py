@@ -1,5 +1,5 @@
 from .create_ellipsoid import TriaxialEllipsoid, OblateEllipsoid, ProlateEllipsoid
-from .magnetic_calcs import ellipsoid_magnetics
+from .ellipsoid_magnetics import ellipsoid_magnetics
 import verde as vd
 import numpy as np
 from scipy.constants import mu_0
