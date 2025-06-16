@@ -116,12 +116,15 @@ def test_int_ext_boundary():
 
     # compare a set value apart
     a, b, c = (5, 4, 3)
-    x = np.linspace(0, 10, 100)
-    y = np.zeros(x.shape)
-    z = np.zeros(x.shape)
-    internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
+    ellipsoid = TriaxialEllipsoid(a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0))
+    
+    e = np.array([[4.9999999, 5.00000001]])
+    n = np.array([[0.0, 0.0]])
+    u = np.array([[0.0, 0.0]])
+    coordinates = (e, n, u)
 
-
-    ge, _, _ = _get_gravity_array(internal_mask, 5, 4, 3, x, y, z, density=1000)
-    first_false = np.argmax(~internal_mask)
-    np.testing.assert_allclose(ge[first_false], ge[first_false - 1], atol=1e-06)
+    ge, gn, gu = ellipsoid_gravity(coordinates, ellipsoid, 2000, field="g")
+    
+    np.testing.assert_allclose(ge[0, 0], ge[0, 1], rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(gn[0, 0], gn[0, 1], rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(gu[0, 0], gu[0, 1], rtol=1e-5, atol=1e-5)

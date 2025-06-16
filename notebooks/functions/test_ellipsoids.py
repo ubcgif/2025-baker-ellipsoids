@@ -1,5 +1,5 @@
 from .create_ellipsoid import TriaxialEllipsoid, OblateEllipsoid, ProlateEllipsoid
-from .get_gravity_ellipsoids import ellipsoid_gravity
+from .projection import ellipsoid_gravity
 import numpy as np
 import verde as vd
 
