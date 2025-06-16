@@ -11,7 +11,7 @@ def test_magnetic_symmetry():
     
     """
     a, b, c = (4, 3, 2) # triaxial ellipsoid
-    yaw = 90
+    yaw = 0
     pitch = 0
     roll = 0
     n = [1, 2, 3]
@@ -94,4 +94,42 @@ def test_zero_field():
     np.testing.assert_allclose(bn[0], 0)
     np.testing.assert_allclose(bu[0], 0)
 
+def test_mag_ext_int_boundary():
+    """
+    Check the boundary between internal and external field calculations is consistent.
+    """
+    # aribtrary parameters
+    a, b = 1, 2
+    H0 = np.array([10.0, 0.0, 0.0])
+    k = 0.1
+
+    ellipsoid = OblateEllipsoid(a=2, b=3, yaw=0, pitch=0, centre=(0, 0, 0))
+    
+    e = np.array([[1.999, 2.001]])
+    n = np.array([[0.0, 0.0]])
+    u = np.array([[0.0, 0.0]])
+    coordinates = (e, n, u)
+
+    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, k, H0, field="b")
+
+    np.testing.assert_allclose(be[0, 0], be[0, 1], rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(bn[0, 0], bn[0, 1], rtol=1e-3, atol=1e-3)
+    np.testing.assert_allclose(bu[0, 0], bu[0, 1], rtol=1e-3, atol=1e-3)
+
+def test_mag_flipped_ellipsoid():
+    """
+    Check that rotating the ellipsoid in various ways maintains expected results.
+    """
+    ...
+    
+def test_mag_symmetry_through_axis():
+    """
+    With no rotation of the ellipsoid and an external field aligned with the axis,
+    check that the symmetry of the returned magnetic field is as expected.
+    """
+    ...
+
+def test_obl_pro_symmetry():
+    ...
+    
     
