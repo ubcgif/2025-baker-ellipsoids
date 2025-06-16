@@ -21,7 +21,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
 
     Parameters
     ----------
-    
+
     Coordinates: tuple of easting (e), northing (n), upward (u) points
         e : ndarray
             Easting coordinates, in the form:
@@ -47,8 +47,8 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     density***: float or list
         The uniform density of the ellipsoid in kg/m^3, or an array of densities
         for multiple ellipsoid cases, with the same size as 'ellipsoids'.
-        
-    field : (optional) str, one of either "e", "n", "u". 
+
+    field : (optional) str, one of either "e", "n", "u".
         if no input is given, the function will return all three components of
         gravity.
 

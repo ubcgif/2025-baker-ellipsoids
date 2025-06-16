@@ -1,15 +1,33 @@
 from .get_gravity_ellipsoids import (
-  _get_gravity_oblate,
-  _get_gravity_triaxial,
-  _get_internal_g,
-  _get_gravity_prolate,
-  )
+    _get_gravity_oblate,
+    _get_gravity_triaxial,
+    _get_internal_g,
+    _get_gravity_prolate,
+)
 import numpy as np
 from choclo.point import gravity_u as pointgrav
 import verde as vd
 from .projection import ellipsoid_gravity
 from .get_gravity_ellipsoids import _get_gravity_array
-from .create_ellipsoid import TriaxialEllipsoid
+from .create_ellipsoid import TriaxialEllipsoid, OblateEllipsoid, ProlateEllipsoid
+
+def test_degenerate_ellipsoid_cases():
+    """
+
+    Test cases where the axes lengths are close to the boundary of accepted values.
+
+    """
+    tri = TriaxialEllipsoid(5, 4.99999999, 4.99999998, 0, 0, 0, (0, 0, 0))
+    pro = ProlateEllipsoid(5, 4.99999999, 0, 0, (0, 0, 0))
+    obl = OblateEllipsoid(4.99999999, 5, 0, 0, (0, 0, 0))
+
+    coordinates = vd.grid_coordinates(
+        region=(-20, 20, -20, 20), spacing=0.5, extra_coords=5
+    )
+
+    _, _, gu1 = ellipsoid_gravity(coordinates, tri, 2000, field="g")
+    _, _, gu2 = ellipsoid_gravity(coordinates, pro, 2000, field="g")
+    _, _, gu3 = ellipsoid_gravity(coordinates, obl, 2000, field="g")
 
 
 def test_ellipsoid_at_distance():
@@ -89,17 +107,21 @@ def test_opposite_planes():
     rotation in the ellipsoid.
 
     """
-    a, b, c = (4, 3, 2) # triaxial ellipsoid
+    a, b, c = (4, 3, 2)  # triaxial ellipsoid
     yaw = 90
     pitch = 0
     roll = 0
     n = [1, 2, 3]
     triaxial_example = TriaxialEllipsoid(a, b, c, yaw, pitch, roll, (0, 0, 0))
     density = 2000
-    
+
     # define observation points (2D grid) at surface height (z axis, 'Upward') = 5
-    coordinates1 = vd.grid_coordinates(region = (-20, 20, -20, 20), spacing = 0.5, extra_coords = 5)
-    coordinates2 = vd.grid_coordinates(region = (-20, 20, -20, 20), spacing = 0.5, extra_coords = -5)
+    coordinates1 = vd.grid_coordinates(
+        region=(-20, 20, -20, 20), spacing=0.5, extra_coords=5
+    )
+    coordinates2 = vd.grid_coordinates(
+        region=(-20, 20, -20, 20), spacing=0.5, extra_coords=-5
+    )
 
     _, _, gu1 = ellipsoid_gravity(coordinates1, triaxial_example, 2000, field="g")
     _, _, gu2 = ellipsoid_gravity(coordinates2, triaxial_example, 2000, field="g")
@@ -117,14 +139,14 @@ def test_int_ext_boundary():
     # compare a set value apart
     a, b, c = (5, 4, 3)
     ellipsoid = TriaxialEllipsoid(a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0))
-    
+
     e = np.array([[4.9999999, 5.00000001]])
     n = np.array([[0.0, 0.0]])
     u = np.array([[0.0, 0.0]])
     coordinates = (e, n, u)
 
     ge, gn, gu = ellipsoid_gravity(coordinates, ellipsoid, 2000, field="g")
-    
+
     np.testing.assert_allclose(ge[0, 0], ge[0, 1], rtol=1e-5, atol=1e-5)
     np.testing.assert_allclose(gn[0, 0], gn[0, 1], rtol=1e-5, atol=1e-5)
     np.testing.assert_allclose(gu[0, 0], gu[0, 1], rtol=1e-5, atol=1e-5)
