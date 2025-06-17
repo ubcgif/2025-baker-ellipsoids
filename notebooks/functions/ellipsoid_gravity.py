@@ -1,4 +1,4 @@
-from .utils import (_calculate_lambda, _get_V_as_Euler)
+from .utils import _calculate_lambda, _get_V_as_Euler
 import numpy as np
 from scipy.special import ellipkinc, ellipeinc
 from scipy.constants import gravitational_constant as G
@@ -6,7 +6,6 @@ from scipy.constants import gravitational_constant as G
 
 def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     """
-
     Compute the three gravity components for an ellipsoidal body at specified o
     bservation locations.
 
@@ -76,7 +75,15 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         the ellipsoids have the same desnity.
     Input arrays must match in shape.
 
+    References
+    ----------
+    Clark, S. A., et al. (1986), "Magnetic and gravity anomalies of a trixial
+    ellipsoid"
+    Takenhasi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
+
+    For derivations of the equations, and methods used in this code.
     """
+
     # unpack coordinates and create array to hold final g values
     e, n, u = coordinates[0], coordinates[1], coordinates[2]
     cast = np.broadcast(e, n, u)
@@ -174,13 +181,6 @@ def _get_ABC(a, b, c, lmbda):
 
     C_lmbda : ndarray
         C(λ) function values at each observation point.
-
-    References
-    ----------
-    Clark, S. A., et al. (1986).
-    Takenhasi, Y., et al. (2018).
-
-
     """
 
     # compute the k and theta terms for the elliptic integrals
@@ -202,7 +202,7 @@ def _get_ABC(a, b, c, lmbda):
         ellipeinc(theta_prime, k)
         - B_fk_coeff * ellipkinc(theta_prime, k)
         - B_fk_subtracted_term
-    )  # check this is right
+    )
 
     # compute terms associated with C(lambda)
     C_coeff = 2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
@@ -264,9 +264,7 @@ def _get_internal_g(x, y, z, a, b, c, density):
     return g_int_x, g_int_y, g_int_z
 
 
-def _get_gravity_oblate(
-    x, y, z, a, b, c, density, lmbda=None
-):  # takes semiaxes, lambda value, density
+def _get_gravity_oblate(x, y, z, a, b, c, density, lmbda=None):
     """
     Calculate the components of Δg₁, Δg₂, and Δg₃ for the oblate ellipsoid case (a < b = c).
 
@@ -338,9 +336,7 @@ def _get_gravity_oblate(
     return g1, g2, g3
 
 
-def _get_gravity_prolate(
-    x, y, z, a, b, c, density, lmbda=None
-):  # takes semiaxes, lambda value, density
+def _get_gravity_prolate(x, y, z, a, b, c, density, lmbda=None):
     """
 
     Calculate the components of Δg₁, Δg₂, and Δg₃ for the prolate ellipsoid case
@@ -475,7 +471,7 @@ def _get_gravity_triaxial(
     return dg1, dg2, dg3
 
 
-def _get_gravity_array(internal_mask, a, b, c, x, y, z, density, topo_h=None):
+def _get_gravity_array(internal_mask, a, b, c, x, y, z, density):
     """ "
     Compute the total gravitational effect of an ellipsoidal body at given observation points.
 

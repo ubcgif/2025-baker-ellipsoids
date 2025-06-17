@@ -1,10 +1,8 @@
 import numpy as np
-import verde as vd
-import matplotlib.pyplot as plt
-from matplotlib import cm
 from scipy.spatial.transform import Rotation as R
 
-def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coordinates
+
+def _calculate_lambda(x, y, z, a, b, c):
     """
     Calculate the value of lambda, the parameter defining surfaces in a confocal family
     of ellipsoids (i.e., the inflation/deflation parameter), for a given ellipsoid and
@@ -31,9 +29,6 @@ def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coord
         The computed value(s) of the lambda parameter.
 
     """
-    # Calculate lambda using x, y, z
-
-    # Check that the input values of x, y, z are greater than a, b, c semi axis lengths
     if not (np.any(np.abs(x) >= a) or np.any(np.abs(y) >= b) or np.any(np.abs(z) >= c)):
         raise ValueError(
             "Arrays x, y, z should contain points which lie outside"
@@ -63,7 +58,7 @@ def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coord
 
     theta_internal = -q / (2 * np.sqrt((-p / 3) ** 3))
 
-    # clip to remove floating point precision errors
+    # clip to remove floating point precision errors (as per testing)
     theta_internal_1 = np.clip(theta_internal, -1.0, 1.0)
 
     theta = np.arccos(theta_internal_1)
@@ -71,6 +66,7 @@ def _calculate_lambda(x, y, z, a, b, c):  # takes semiaxes and observation coord
     lmbda = 2 * np.sqrt((-p / 3)) * np.cos(theta / 3) - p_2 / 3
 
     return lmbda
+
 
 def _get_V_as_Euler(yaw, pitch, roll):
     """
@@ -141,13 +137,12 @@ def _global_to_local(northing, easting, extra_coords, depth, V):
 
     """
 
-    # create arrays to hold local coords
     x = np.ones(northing.shape)
     y = np.ones(northing.shape)
     z = np.ones(northing.shape)
     local_coords = [x, y, z]
 
-    # calculate local_coords for each x, y, z
+    # calculate local_coords for each x, y, z point
     for i in range(len(local_coords)):
         local_coords[i] = (
             northing * V[i][0] + easting * V[i][1] - (depth - extra_coords) * V[i][2]
@@ -156,62 +151,33 @@ def _global_to_local(northing, easting, extra_coords, depth, V):
     return local_coords
 
 
-
-##############################################################################
-
-# likely redundant functions
-
-
-def _get_ellipsoid_mass(a, b, c, density):
+def _generate_basic_ellipsoid(a, b, c):
     """
-    Get mass of ellipsoid from volume,
-    In order to compare to point mass (spherical) source.
+    Generate the surface of an ellipsoid using spherical angles for 3D plotting.
+    This function is seperate from gravity calculations and is purely for
+    visualisation of 3D ellipsoids.
 
     Parameters
     ----------
-    a, b, c (m) = ellipsoid semiaxes
-    density (kg/m^3) = uniform density of the ellipsoid
+    a, b, c : float
+        Semiaxis lengths of the ellipsoid along the x, y, and z axes, respectively.
 
     Returns
     -------
-    mass of the ellpsoid (kg)
+    x1, y1, z1 : ndarray
+        Arrays representing the ellipsoid surface coordinates in 3D space, computed
+        from spherical angles. T
 
     """
-    volume = 4 / 3 * np.pi * a * b * c
 
-    return density * volume
+    # Set of all spherical angles:
+    u = np.linspace(0, 2 * np.pi, 100)
+    v = np.linspace(0, np.pi, 100)
 
+    # Cartesian coordinates that correspond to the spherical angles:
+    # np.outer is the outer product of the two arrays (ellipsoid surfce)
+    x1 = a * np.outer(np.cos(u), np.sin(v))
+    y1 = b * np.outer(np.sin(u), np.sin(v))
+    z1 = c * np.outer(np.ones_like(u), np.cos(v))
 
-def _get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
-    """
-    Return the  coordinates and mask which separates points
-    within the given ellipsoid and on or outside
-    of the given ellipsoid.
-
-    Parameters
-    ----------
-    region (list)(W, E, S, N): end points of the coordinate grid
-    spacing (float): separation between the points (default = 1)
-    extra_coords (float or list): surfaces of constant height to test (default = 0)
-    a, b, c (float): semiaxes of the ellipsoid
-
-    Returns
-    -------
-    x, y, z (arrays): 2D coordinate arrays for grid
-    internal (array): mask for the internal points of the ellipsoid
-
-    NOTES:
-    Consider making it possible to pass a varying array as a set of z coords.
-    """
-    if topo_h == None:
-        e, n, u = vd.grid_coordinates(
-            region=region, spacing=spacing, extra_coords=extra_coords
-        )
-
-    else:
-        e, n = vd.grid_coordinates(region=region, spacing=spacing)
-        u = topo_h * np.exp(-(e**2) / (np.max(e) ** 2) - n**2 / (np.max(n) ** 2))
-
-    internal = (e**2) / (a**2) + (n**2) / (b**2) + (u**2) / (c**2) < 1
-
-    return e, n, u, internal
+    return x1, y1, z1

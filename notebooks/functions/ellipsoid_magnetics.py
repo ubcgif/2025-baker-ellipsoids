@@ -1,13 +1,14 @@
 # calculations to approximate magnetic field
 
 from .ellipsoid_gravity import _get_ABC
-from .utils import (_get_V_as_Euler, _calculate_lambda)
+from .utils import _get_V_as_Euler, _calculate_lambda
 
 import numpy as np
 from scipy.special import ellipkinc, ellipeinc
 from scipy.constants import mu_0
 
 # internal field N matrix functions
+
 
 def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
     """
@@ -70,9 +71,13 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
     bu: ndarray
         Upward component of the magnetic field.
 
-    NOTES
-    -----
+    References
+    ----------
+    Clark, S. A., et al. (1986), "Magnetic and gravity anomalies of a trixial
+    ellipsoid"
+    Takenhasi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
 
+    For derivations of the equations, and methods used in this code.
     """
     # unpack coordinates, set up arrays to hold results
     e, n, u = coordinates[0], coordinates[1], coordinates[2]
@@ -156,6 +161,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
     return be, bn, bu
 
 
+# construct components of the internal matrix
+
+
 def _depol_triaxial_int(a, b, c):
     """
     Calculate the internal depolarisation tensor (N(r)) for the triaxial case.
@@ -201,7 +209,6 @@ def _depol_prolate_int(a, b, c):
 
     """
     m = a / b
-
     nxx = 1 / (m**2 - 1) * ((m / np.sqrt(m**2 - 1)) * np.log(m + np.sqrt(m**2 - 1)) - 1)
     nyy = nzz = 0.5 * (1 - nxx)
 
@@ -225,7 +232,6 @@ def _depol_oblate_int(a, b, c):
     """
 
     m = a / b
-
     nxx = 1 / (1 - m**2) * (1 - (m / np.sqrt(1 - m**2)) * np.arccos(m))
     nyy = nzz = 0.5 * (1 - nxx)
 
@@ -250,7 +256,6 @@ def _construct_N_matrix_internal(a, b, c):
 
     # only diagonal elements
     # Nii corresponds to the above functions
-
     if np.all((a > b) & (b > c)):
         func = _depol_triaxial_int(a, b, c)
     if np.all((a > b) & (b == c)):
@@ -293,8 +298,8 @@ def _get_h_values(a, b, c, lmbda):
     """
 
     axes = np.array([a, b, c])
-    h = np.zeros(3)
     R = np.sqrt(np.prod(axes**2 + lmbda))
+
     return -1 / ((axes**2 + lmbda) * R)
 
 
@@ -320,23 +325,19 @@ def _spatial_deriv_lambda(x, y, z, a, b, c, lmbda):
     vals : array of x, y, z components
         The spatial derivative for the given point.
 
-
     """
 
-    # Numerators (shape: same as x, y, z)
+    # numerators (shape: same as x, y, z)
     num_x = 2 * x / (a**2 + lmbda)
     num_y = 2 * y / (b**2 + lmbda)
     num_z = 2 * z / (c**2 + lmbda)
 
-    # Denominator (broadcasts naturally)
+    # denominator
     denom = (
         (x / (a**2 + lmbda)) ** 2
         + (y / (b**2 + lmbda)) ** 2
         + (z / (c**2 + lmbda)) ** 2
     )
-
-    # Avoid divide-by-zero
-    denom = np.where(denom == 0, 1e-12, denom)
 
     vals = np.stack([num_x / denom, num_y / denom, num_z / denom], axis=-1)
 
@@ -345,7 +346,8 @@ def _spatial_deriv_lambda(x, y, z, a, b, c, lmbda):
 
 def _get_g_values_magnetics(a, b, c, lmbda):
     """
-    Get the gravity values for the three ellipsoid types.
+    Compute the gravity values (g) for the three ellipsoid types. See ellipsoid_gravity
+    for the in depth production of gravity components.
 
     parameters
     ----------
@@ -365,10 +367,12 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
     """
 
+    # trixial case
     if a > b > c:
         func = _get_ABC(a, b, c, lmbda)
         gvals_x, gvals_y, gvals_z = func[0], func[1], func[2]
 
+    # prolate case
     if a > b and b == c:
         g1 = (
             2
@@ -390,6 +394,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
         )
         gvals_x, gvals_y, gvals_z = g1, g2, g2
 
+    # oblate case
     if a < b and b == c:
         g1 = (
             2
@@ -456,7 +461,3 @@ def _construct_N_matrix_external(x, y, z, a, b, c, lmbda):
                 N[i][j] = (-a * b * c / 2) * (derivs_lmbda[i] * h_vals[j] * r[j])
 
     return N
-
-
-# construct total magnetic components
-# just for 1 obs point rn

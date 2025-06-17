@@ -4,7 +4,9 @@ from .utils import _calculate_lambda
 
 
 def test_lambda():
-    """Test that lambda fits characteristic equation."""
+    """
+    Test that lambda fits characteristic equation.
+    """
     x, y, z = 6, 5, 4
     a, b, c = 3, 2, 1
     lmbda = _calculate_lambda(x, y, z, a, b, c)
@@ -19,6 +21,10 @@ def test_lambda():
 
 
 def test_zero_cases_for_lambda():
+    """
+    Test that lambda calculation produces acceptbale values in cases which are
+    may throw zero errors.
+    """
     a = 3
     b = 2
     c = 1

@@ -1,20 +1,18 @@
 from .ellipsoid_gravity import (
     _get_gravity_oblate,
     _get_gravity_triaxial,
-    _get_internal_g,
     _get_gravity_prolate,
-    _get_gravity_array,
-    ellipsoid_gravity
+    ellipsoid_gravity,
 )
 import numpy as np
 from choclo.point import gravity_u as pointgrav
 import verde as vd
 from .create_ellipsoid import TriaxialEllipsoid, OblateEllipsoid, ProlateEllipsoid
 
+
 def test_degenerate_ellipsoid_cases():
     """
-
-    Test cases where the ellipsoid axes lengths are close to the boundary of 
+    Test cases where the ellipsoid axes lengths are close to the boundary of
     accepted values.
 
     """
@@ -112,7 +110,6 @@ def test_opposite_planes():
     yaw = 90
     pitch = 0
     roll = 0
-    n = [1, 2, 3]
     triaxial_example = TriaxialEllipsoid(a, b, c, yaw, pitch, roll, (0, 0, 0))
     density = 2000
 
@@ -124,8 +121,8 @@ def test_opposite_planes():
         region=(-20, 20, -20, 20), spacing=0.5, extra_coords=-5
     )
 
-    _, _, gu1 = ellipsoid_gravity(coordinates1, triaxial_example, 2000, field="g")
-    _, _, gu2 = ellipsoid_gravity(coordinates2, triaxial_example, 2000, field="g")
+    _, _, gu1 = ellipsoid_gravity(coordinates1, triaxial_example, density, field="g")
+    _, _, gu2 = ellipsoid_gravity(coordinates2, triaxial_example, density, field="g")
     np.testing.assert_allclose(gu1, -np.flip(gu2))
 
 

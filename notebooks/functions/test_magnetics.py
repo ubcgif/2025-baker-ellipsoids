@@ -7,9 +7,7 @@ from scipy.constants import mu_0
 
 def test_magnetic_symmetry():
     """
-
     Check the symmetry of magentic calculations at surfaces above and below the body.
-
     """
     a, b, c = (4, 3, 2)  # triaxial ellipsoid
     yaw = 0
@@ -43,13 +41,11 @@ def test_magnetic_symmetry():
 def test_flipped_h0():
     """
     Check that reversing the magentising field produces the same (reversed) field.
-
     """
 
     a, b = (2, 4)  # triaxial ellipsoid
     yaw = 0
     pitch = 0
-    n = [1, 2, 3]
     H01 = np.array([5, 5, 5])
     H02 = np.array([-5, -5, -5])
     oblate_example = OblateEllipsoid(a, b, yaw, pitch, (0, 0, 0))
@@ -95,7 +91,6 @@ def test_zero_susceptability():
 def test_zero_field():
     """
     Test that zero field produces zero anomalies.
-
     """
 
     a, b = 1, 2
@@ -118,6 +113,7 @@ def test_mag_ext_int_boundary():
     """
     Check the boundary between internal and external field calculations is consistent.
     """
+
     # aribtrary parameters
     a, b = 1, 2
     H0 = np.array([10.0, 0.0, 0.0])
@@ -146,7 +142,6 @@ def test_mag_flipped_ellipsoid():
 
     """
     a, b, c = (4, 3, 2)
-    n = [1, 2, 3]
     H0 = np.array([5, 5, 5])
     triaxial_example = TriaxialEllipsoid(
         a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
@@ -181,7 +176,6 @@ def test_mag_symmetry_across_N_axis():
     """
 
     a, b, c = (4, 3, 2)
-    n = [1, 2, 3]
     H0 = np.array([0, 0, 5])
     triaxial_example = TriaxialEllipsoid(
         a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
@@ -207,7 +201,6 @@ def test_euler_rotation_symmetry_mag():
     """
     Check thoroughly that euler rotations (e.g. 180 or 360 rotations) produce
     the expected result.
-
     """
 
     a, b, c = 5, 4, 3

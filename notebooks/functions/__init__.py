@@ -1,4 +1,5 @@
-from .utils import (_calculate_lambda, 
+from .utils import (
+    _calculate_lambda,
     _get_V_as_Euler,
     _global_to_local,
 )
@@ -10,7 +11,12 @@ from .ellipsoid_gravity import (
     _get_internal_g,
     _get_gravity_prolate,
     _get_gravity_array,
-    ellipsoid_gravity
+    ellipsoid_gravity,
 )
-from .create_ellipsoid import (OblateEllipsoid, ProlateEllipsoid, TriaxialEllipsoid, _generate_basic_ellipsoid)
+from .create_ellipsoid import (
+    OblateEllipsoid,
+    ProlateEllipsoid,
+    TriaxialEllipsoid,
+    _generate_basic_ellipsoid,
+)
 from .ellipsoid_magnetics import ellipsoid_magnetics
