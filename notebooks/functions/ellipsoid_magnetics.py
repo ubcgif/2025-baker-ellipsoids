@@ -125,7 +125,10 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, H0, field="b"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # create K matrix
-        K = k[index] * np.eye(3)
+        if type(k[index]) is not np.ndarray:
+            K = k[index] * np.eye(3)
+        else:
+            K = K
 
         # create N matricies for each given point
         for i, j in np.ndindex(lmbda.shape):

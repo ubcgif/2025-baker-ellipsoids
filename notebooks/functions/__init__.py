@@ -2,6 +2,7 @@ from .utils import (
     _calculate_lambda,
     _get_V_as_Euler,
     _global_to_local,
+    _generate_basic_ellipsoid,
 )
 
 from .ellipsoid_gravity import (
@@ -17,6 +18,5 @@ from .create_ellipsoid import (
     OblateEllipsoid,
     ProlateEllipsoid,
     TriaxialEllipsoid,
-    _generate_basic_ellipsoid,
 )
 from .ellipsoid_magnetics import ellipsoid_magnetics
