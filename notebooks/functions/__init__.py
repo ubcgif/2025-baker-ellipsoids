@@ -1,12 +1,12 @@
 from .utils_ellipsoids import (
     _calculate_lambda,
-    _get_V_as_Euler,
+    _get_v_as_Euler,
     _global_to_local,
     _generate_basic_ellipsoid,
 )
 
 from .ellipsoid_gravity import (
-    _get_ABC,
+    _get_abc,
     _get_gravity_oblate,
     _get_gravity_triaxial,
     _get_internal_g,
