@@ -1,4 +1,4 @@
-from .utils import (
+from .utils_ellipsoids import (
     _calculate_lambda,
     _get_V_as_Euler,
     _global_to_local,
