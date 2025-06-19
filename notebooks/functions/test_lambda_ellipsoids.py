@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from .._forward.utils_ellipsoids import _calculate_lambda
+from .utils_ellipsoids import _calculate_lambda
 
 
 def test_lambda():

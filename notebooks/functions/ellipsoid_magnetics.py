@@ -137,7 +137,8 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, h0, field="b"):
             k_matrix = k[index] * np.eye(3)
         else:
             k_matrix = k[index]
-
+   
+        k_rot = r.T @ k_matrix @ r
         # create N matricies for each given point
         for i, j in np.ndindex(lmbda.shape):
             lam = lmbda[i, j]
@@ -153,8 +154,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, h0, field="b"):
 
             # compute rotation and final H() values
             nr = r.T @ n @ r
-            h_cross = np.linalg.inv(np.eye(3) + n_cross @ k_matrix) @ h0
-            hr = h0 + (nr @ k_matrix) @ h_cross
+            n_cross_rot = r.T @ n_cross @ r
+            h_cross = np.linalg.inv(np.eye(3) + n_cross_rot @ k_rot) @ h0
+            hr = h0 + (nr @ k_rot) @ h_cross
 
             # sum across all components and ellipsoids
             be[i, j] += 1e9 * mu_0 * hr[0]
@@ -186,13 +188,13 @@ def _depol_triaxial_int(a, b, c):
     """
 
     phi = np.arccos(c / a)
-    k = np.sqrt(((a**2 - b**2) / (a**2 - c**2)))
-    coeff = (a * b * c) / (np.sqrt(a**2 - c**2) * (a**2 - b**2))
+    k = np.sqrt((a**2 - b**2) / (a**2 - c**2))
 
-    nxx = coeff * (ellipkinc(phi, k) - ellipeinc(phi, k))
-    nyy = -nxx + ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) \
+    nxx = (a * b * c) / (np.sqrt(a**2 - c**2) * (a**2 - b**2)) \
+        * (ellipkinc(phi, k) - ellipeinc(phi, k))
+    nyy = -1 * nxx + ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) \
         * ellipeinc(phi, k) - c**2 / (b**2 - c**2)
-    nzz = -((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) \
+    nzz = -1 * ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) \
         * ellipeinc(phi, k) + b**2 / (b**2 - c**2)
 
     return nxx, nyy, nzz
@@ -215,8 +217,8 @@ def _depol_prolate_int(a, b, c):
 
     """
     m = a / b
-    nxx = (1 / (m**2 - 1)) * ((m / np.sqrt(m**2 - 1)) *
-                            np.log(m + np.sqrt(m**2 - 1)) - 1)
+    nxx = (1 / (m**2 - 1)) * (((m / np.sqrt(m**2 - 1)) *
+                               np.log(m + np.sqrt(m**2 - 1))) - 1)
     nyy = nzz = 0.5 * (1 - nxx)
 
     return nxx, nyy, nzz
@@ -385,7 +387,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
     if a > b and b == c:
         g1 = (
             2
-            / ((a**2 - b**2) ** 3 / 2)
+            / ((a**2 - b**2) ** (3 / 2))
             * (
                 np.log(
                     ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5)

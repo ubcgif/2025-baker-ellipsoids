@@ -2,12 +2,12 @@ import numpy as np
 import verde as vd
 from choclo.point import gravity_u as pointgrav
 
-from .._forward.create_ellipsoid import (
+from .create_ellipsoid import (
     OblateEllipsoid,
     ProlateEllipsoid,
     TriaxialEllipsoid,
 )
-from .._forward.ellipsoid_gravity import (
+from .ellipsoid_gravity import (
     _get_gravity_oblate,
     _get_gravity_prolate,
     _get_gravity_triaxial,

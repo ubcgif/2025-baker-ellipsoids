@@ -2,12 +2,12 @@ import numpy as np
 import verde as vd
 from scipy.constants import mu_0
 
-from .._forward.create_ellipsoid import (
+from .create_ellipsoid import (
     OblateEllipsoid,
     ProlateEllipsoid,
     TriaxialEllipsoid,
 )
-from .._forward.ellipsoid_magnetics import ellipsoid_magnetics
+from .ellipsoid_magnetics import ellipsoid_magnetics
 
 
 def test_magnetic_symmetry():
@@ -124,7 +124,6 @@ def test_mag_ext_int_boundary():
     """
 
     # aribtrary parameters
-    a, b = 1, 2
     k = 0.1
     a, b = 50, 60
     h0 = np.array([0, 0, 10])
@@ -140,9 +139,9 @@ def test_mag_ext_int_boundary():
     be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, k, h0, field="b")
 
     # ideally the tolerances are lower for these - issue created
-    np.testing.assert_allclose(be[0, 0], be[0, 1], rtol=5e-2, atol=5e-2)
-    np.testing.assert_allclose(bn[0, 0], bn[0, 1], rtol=5e-2, atol=5e-2)
-    np.testing.assert_allclose(bu[0, 0], bu[0, 1], rtol=5e-2, atol=5e-2)
+    np.testing.assert_allclose(be[0, 0], be[0, 1], rtol=5e-4, atol=5e-4)
+    np.testing.assert_allclose(bn[0, 0], bn[0, 1], rtol=5e-4, atol=5e-4)
+    np.testing.assert_allclose(bu[0, 0], bu[0, 1], rtol=5e-4, atol=5e-4)
 
 
 def test_mag_flipped_ellipsoid():
