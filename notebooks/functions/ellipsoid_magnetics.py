@@ -6,13 +6,13 @@ bodies.
 import numpy as np
 from scipy.constants import mu_0
 from scipy.special import ellipeinc, ellipkinc
-
+import harmonica as hm
 from .ellipsoid_gravity import _get_abc
 from .utils_ellipsoids import _calculate_lambda, _get_v_as_Euler
 
 
 # internal field N matrix functions
-def ellipsoid_magnetics(coordinates, ellipsoids, k, h0, field="b"):
+def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field, field="b"):
     """
     Produces the components for the magnetic field components (be, bn, bu):
 
@@ -59,8 +59,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, h0, field="b"):
         matrix with the given susceptibilty components, suggesting an
         anisotropic susceptibility.
 
-    H0 : ndarray
-        Three components of the uniform inducing field.
+    external_field : ndarray
+        The uniform magnetic field as and array with values of
+        (magnitude, inclination, declination).
 
     field : (optional) str, one of either "e", "n", "u".
         if no input is given, the function will return all three components of
@@ -91,23 +92,29 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, h0, field="b"):
     cast = np.broadcast(e, n, u)
     be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
 
+    # unpack external field, change to vector
+    magnitude, inclination, declination = external_field
+    h0 = hm.magnetic_angles_to_vec(magnitude, inclination, declination)
+
     # check inputs are of the correct type
     if type(ellipsoids) is not list:
         ellipsoids = [ellipsoids]
 
-    if type(k) is not list:
-        k = [k]
+    if type(susceptibility) is not list:
+        susceptibility = [susceptibility]
 
-    if len(ellipsoids) != len(k):
+    if len(ellipsoids) != len(susceptibility):
         raise ValueError(
             "Magnetic susceptibilty must be a list containing the value"
-            " of k for each ellipsoid. Instead, number of ellipsoids"
-            f" given is {len(ellipsoids)} and number of k values is"
-            f" {len(k)}."
-        )
+            " of susceptibility for each ellipsoid. Instead, number of"
+            "ellipsoids given is {len(ellipsoids)} and number of "
+            f"susceptibility values is {len(susceptibility)}."
+            )
 
-    if type(h0) is not np.ndarray:
-        raise ValueError("H0 values of the regional field  must be an array.")
+    if type(external_field) is not tuple:
+        raise ValueError("H0 values of the regional field  must be an tuple"
+                         " of three values (M, I, D): instead got "
+                         f" {external_field}.")
 
     # loop over each given ellipsoid
     for index, ellipsoid in enumerate(ellipsoids):
@@ -133,10 +140,10 @@ def ellipsoid_magnetics(coordinates, ellipsoids, k, h0, field="b"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # create K matrix
-        if type(k[index]) is not np.ndarray:
-            k_matrix = k[index] * np.eye(3)
+        if type(susceptibility[index]) is not np.ndarray:
+            k_matrix = susceptibility[index] * np.eye(3)
         else:
-            k_matrix = k[index]
+            k_matrix = susceptibility[index]
    
         k_rot = r.T @ k_matrix @ r
         # create N matricies for each given point
