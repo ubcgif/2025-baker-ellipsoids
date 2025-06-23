@@ -100,9 +100,15 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
                          f" instead got {external_field}.")
 
     # unpack coordinates, set up arrays to hold results
-    e, n, u = coordinates[0], coordinates[1], coordinates[2]
-    cast = np.broadcast(e, n, u)
+    e = np.atleast_1d(np.asarray(coordinates[0]))
+    n = np.atleast_1d(np.asarray(coordinates[1]))
+    u = np.atleast_1d(np.asarray(coordinates[2]))
+
+    cast = e.shape
     be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
+    be = be.ravel()
+    bn = bn.ravel()
+    bu = bu.ravel()
 
     # unpack external field, change to vector
     magnitude, inclination, declination = external_field
@@ -126,24 +132,28 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
         r = _get_v_as_Euler(yaw, pitch, roll)
         rotated_points = r.T @ obs_points
         x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
+        x = x.ravel()
+        y = y.ravel()
+        z = z.ravel()
 
         # create boolean for internal vs external field points
         # and compute lambda for each coordinate point
-        lmbda = _calculate_lambda(x, y, z, a, b, c)
-        internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
+        lmbda = (_calculate_lambda(x, y, z, a, b, c)).ravel()
 
+        internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
+        internal_mask = internal_mask.ravel()
         # create K matrix
         if type(susceptibility[index]) is not np.ndarray:
             k_matrix = susceptibility[index] * np.eye(3)
         else:
             k_matrix = susceptibility[index]
-   
+
         k_rot = r.T @ k_matrix @ r
         # create N matricies for each given point
-        for i, j in np.ndindex(lmbda.shape):
-            lam = lmbda[i, j]
-            xi, yi, zi = x[i, j], y[i, j], z[i, j]
-            is_internal = internal_mask[i, j]
+        for idx in range(len(lmbda)):
+            lam = lmbda[idx]
+            xi, yi, zi = x[idx], y[idx], z[idx]
+            is_internal = internal_mask[idx]
 
             n_cross = _construct_n_matrix_internal(a, b, c)
 
@@ -159,9 +169,13 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             hr = h0 + (nr @ k_rot) @ h_cross
 
             # sum across all components and ellipsoids
-            be[i, j] += 1e9 * mu_0 * hr[0]
-            bn[i, j] += 1e9 * mu_0 * hr[1]
-            bu[i, j] += 1e9 * mu_0 * hr[2]
+            be[idx] += 1e9 * mu_0 * hr[0]
+            bn[idx] += 1e9 * mu_0 * hr[1]
+            bu[idx] += 1e9 * mu_0 * hr[2]
+
+        be = be.reshape(cast.shape)
+        bn = bn.reshape(cast.shape)
+        bu = bu.reshape(cast.shape)
 
     # return according to user
     return {"e": be, "n": bn, "u": bu}.get(field, (be, bn, bu))
