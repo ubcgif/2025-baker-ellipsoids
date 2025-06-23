@@ -9,7 +9,7 @@ from scipy.special import ellipeinc, ellipkinc
 import harmonica as hm
 from .ellipsoid_gravity import _get_abc
 from .utils_ellipsoids import _calculate_lambda, _get_v_as_Euler
-
+from collections.abc import Iterable
 
 # internal field N matrix functions
 def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field, field="b"):
@@ -97,21 +97,19 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     h0 = hm.magnetic_angles_to_vec(magnitude, inclination, declination)
 
     # check inputs are of the correct type
-    if type(ellipsoids) is not list:
+    if not isinstance(ellipsoids, Iterable):
         ellipsoids = [ellipsoids]
 
-    if type(susceptibility) is not list:
+    if not isinstance(susceptibility, Iterable):
         susceptibility = [susceptibility]
 
-    if len(ellipsoids) != len(susceptibility):
-        raise ValueError(
-            "Magnetic susceptibilty must be a list containing the value"
-            " of susceptibility for each ellipsoid. Instead, number of"
-            "ellipsoids given is {len(ellipsoids)} and number of "
-            f"susceptibility values is {len(susceptibility)}."
-            )
 
-    if type(external_field) is not tuple:
+    if not isinstance(external_field, Iterable):
+        raise ValueError("H0 values of the regional field  must be an tuple"
+                         " of three values (M, I, D): instead got "
+                         f" {external_field}.")
+
+    if len(external_field) != 3:
         raise ValueError("H0 values of the regional field  must be an tuple"
                          " of three values (M, I, D): instead got "
                          f" {external_field}.")
