@@ -166,7 +166,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             nr = r.T @ n @ r
             n_cross_rot = r.T @ n_cross @ r
             h_cross = np.linalg.inv(np.eye(3) + n_cross_rot @ k_rot) @ h0
-            hr = h0 + (nr @ k_rot) @ h_cross
+            hr = (nr @ k_rot) @ h_cross
 
             # sum across all components and ellipsoids
             be[idx] += 1e9 * mu_0 * hr[0]
