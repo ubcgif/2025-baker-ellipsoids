@@ -92,9 +92,9 @@ def test_zero_susceptability():
 
     be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, susceptabililty, external_field, field="b")
 
-    np.testing.assert_allclose(be[0], 1e9 * mu_0 * h0[0])
-    np.testing.assert_allclose(bn[0], 1e9 * mu_0 * h0[1])
-    np.testing.assert_allclose(bu[0], 1e9 * mu_0 * h0[2])
+    np.testing.assert_allclose(be[0], 0)
+    np.testing.assert_allclose(bn[0], 0)
+    np.testing.assert_allclose(bu[0], 0)
 
 
 def test_zero_field():
