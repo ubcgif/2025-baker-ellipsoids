@@ -8,7 +8,7 @@ from .create_ellipsoid import (
     TriaxialEllipsoid,
 )
 from .ellipsoid_magnetics import ellipsoid_magnetics
-
+import harmonica as hm
 
 def test_magnetic_symmetry():
     """
@@ -16,10 +16,9 @@ def test_magnetic_symmetry():
     the body.
     """
     a, b, c = (4, 3, 2)  # triaxial ellipsoid
-    yaw = 0
-    pitch = 0
-    roll = 0
-    h0 = np.array([5, 5, 5])
+    yaw, pitch, roll = (0, 0, 0)
+    external_field = (55_000, 0.0, 90.0)
+    susceptabililty = 0.1
     triaxial_example = TriaxialEllipsoid(a, b, c, yaw, pitch, roll, (0, 0, 0))
     triaxial_example2 = TriaxialEllipsoid(a, b, c, yaw, pitch, roll, (0, 0, 0))
 
@@ -33,10 +32,10 @@ def test_magnetic_symmetry():
     )
 
     be1, bn1, bu1 = ellipsoid_magnetics(
-        coordinates, triaxial_example, 0.1, h0, field="b"
+        coordinates, triaxial_example,susceptabililty, external_field, field="b"
     )
     be2, bn2, bu2 = ellipsoid_magnetics(
-        coordinates2, triaxial_example2, 0.1, h0, field="b"
+        coordinates2, triaxial_example2, susceptabililty, external_field, field="b"
     )
 
     np.testing.assert_allclose(np.abs(be1), np.flip(np.abs(be2)))
@@ -51,10 +50,11 @@ def test_flipped_h0():
     """
 
     a, b = (2, 4)  # triaxial ellipsoid
-    yaw = 0
-    pitch = 0
-    h01 = np.array([5, 5, 5])
-    h02 = np.array([-5, -5, -5])
+    yaw, pitch = 0, 0
+    
+    external_field1 = np.array((55_000, 0.0, 90.0))
+    external_field2 = -external_field1
+    susceptabililty = 0.1
     oblate_example = OblateEllipsoid(a, b, yaw, pitch, (0, 0, 0))
 
     # define observation points (2D grid) at surface height (z axis,
@@ -64,10 +64,10 @@ def test_flipped_h0():
     )
 
     be1, bn1, bu1 = ellipsoid_magnetics(
-        coordinates, oblate_example, 0.1, h01, field="b"
+        coordinates, oblate_example, susceptabililty, external_field1, field="b"
     )
     be2, bn2, bu2 = ellipsoid_magnetics(
-        coordinates, oblate_example, 0.1, h02, field="b"
+        coordinates, oblate_example, susceptabililty, external_field2, field="b"
     )
 
     np.testing.assert_allclose(np.abs(be1), np.abs(be2))
@@ -81,15 +81,15 @@ def test_zero_susceptability():
     """
 
     a, b = 1, 2
-    h0 = np.array([10, 0, 0])
-    k = 0
-
+    external_field = (55_000, 0.0, 90.0)
+    susceptabililty = 0
     ellipsoid = OblateEllipsoid(a, b, yaw=0, pitch=0, centre=(0, 0, 0))
     coordinates = vd.grid_coordinates(
         region=(-10, 10, -10, 10), spacing=1.0, extra_coords=5
     )
+    h0 = hm.magnetic_angles_to_vec(55_000, 0.0, 90.0)
 
-    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, k, h0, field="b")
+    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, susceptabililty, external_field, field="b")
 
     np.testing.assert_allclose(be[0], 1e9 * mu_0 * h0[0])
     np.testing.assert_allclose(bn[0], 1e9 * mu_0 * h0[1])
@@ -102,15 +102,15 @@ def test_zero_field():
     """
 
     a, b = 1, 2
-    h0 = np.array([0, 0, 0])
-    k = 0.1
+    external_field = np.array([0, 0, 0])
+    susceptabililty = 0.1
 
     ellipsoid = OblateEllipsoid(a, b, yaw=0, pitch=0, centre=(0, 0, 0))
     coordinates = vd.grid_coordinates(
         region=(-10, 10, -10, 10), spacing=1.0, extra_coords=5
     )
 
-    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, k, h0, field="b")
+    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, susceptabililty, external_field, field="b")
 
     np.testing.assert_allclose(be[0], 0)
     np.testing.assert_allclose(bn[0], 0)
@@ -123,11 +123,9 @@ def test_mag_ext_int_boundary():
     consistent.
     """
 
-    # aribtrary parameters
-    k = 0.1
     a, b = 50, 60
-    h0 = np.array([0, 0, 10])
-    k = 0.1
+    external_field = (55_000, 0.0, 90.0)
+    susceptabililty = 0.1
 
     ellipsoid = OblateEllipsoid(a, b, yaw=0, pitch=0, centre=(0, 0, 0))
 
@@ -136,7 +134,7 @@ def test_mag_ext_int_boundary():
     u = np.array([[0.0, 0.0]])
     coordinates = (e, n, u)
 
-    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, k, h0, field="b")
+    be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, susceptabililty, external_field, field="b")
 
     # ideally the tolerances are lower for these - issue created
     np.testing.assert_allclose(be[0, 0], be[0, 1], rtol=5e-4, atol=5e-4)
@@ -151,7 +149,9 @@ def test_mag_flipped_ellipsoid():
 
     """
     a, b, c = (4, 3, 2)
-    h0 = np.array([5, 5, 5])
+    external_field = (55_000, 0.0, 90.0)
+    susceptabililty = 0.1
+
     triaxial_example = TriaxialEllipsoid(
         a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
     )
@@ -166,10 +166,10 @@ def test_mag_flipped_ellipsoid():
     )
 
     be1, bn1, bu1 = ellipsoid_magnetics(
-        coordinates, triaxial_example, 0.1, h0, field="b"
+        coordinates, triaxial_example, susceptabililty, external_field, field="b"
     )
     be2, bn2, bu2 = ellipsoid_magnetics(
-        coordinates, triaxial_example2, 0.1, h0, field="b"
+        coordinates, triaxial_example2, susceptabililty, external_field, field="b"
     )
 
     np.testing.assert_allclose(np.abs(be1), np.abs(be2))
@@ -186,7 +186,8 @@ def test_mag_symmetry_across_N_axis():
     """
 
     a, b, c = (4, 3, 2)
-    h0 = np.array([0, 0, 5])
+    external_field = (55_000, 0.0, 90.0)
+    susceptabililty = 0.1
     triaxial_example = TriaxialEllipsoid(
         a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
     )
@@ -198,7 +199,7 @@ def test_mag_symmetry_across_N_axis():
     )
 
     be1, bn1, bu1 = ellipsoid_magnetics(
-        coordinates, triaxial_example, 0.1, h0, field="b"
+        coordinates, triaxial_example, susceptabililty, external_field, field="b"
     )
 
     # check symmetry across the easting axis (rows)
@@ -215,18 +216,18 @@ def test_euler_rotation_symmetry_mag():
     """
 
     a, b, c = 5, 4, 3
-    h0 = np.array([10.0, 0.0, 0.0])
-    k = 0.1
+    external_field = (55_000, 0.0, 90.0)
+    susceptabililty = 0.1
     coordinates = vd.grid_coordinates(
         region=(-5, 5, -5, 5), spacing=1.0, extra_coords=5
     )
 
     def check_rotation_equivalence(base_ellipsoid, rotated_ellipsoids):
         base_be, base_bn, base_bu = ellipsoid_magnetics(
-            coordinates, base_ellipsoid, k, h0
+            coordinates, base_ellipsoid, susceptabililty, external_field
         )
         for rotated in rotated_ellipsoids:
-            be, bn, bu = ellipsoid_magnetics(coordinates, rotated, k, h0)
+            be, bn, bu = ellipsoid_magnetics(coordinates, rotated, susceptabililty, external_field)
             np.testing.assert_allclose(be, base_be, rtol=1e-5, atol=1e-8)
             np.testing.assert_allclose(bn, base_bn, rtol=1e-5, atol=1e-8)
             np.testing.assert_allclose(bu, base_bu, rtol=1e-5, atol=1e-8)
