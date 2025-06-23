@@ -7,7 +7,7 @@ from scipy.constants import gravitational_constant as g
 from scipy.special import ellipeinc, ellipkinc
 
 from .utils_ellipsoids import _calculate_lambda, _get_v_as_Euler
-
+from collections.abc import Iterable
 
 def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     """
@@ -97,24 +97,17 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     ge, gn, gu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
 
     # deal with the case of a single ellipsoid being passed
-    if type(ellipsoids) is not list:
+    if not isinstance(ellipsoids, Iterable):
         ellipsoids = [ellipsoids]
+        
+    if not isinstance(density, Iterable):
         density = [density]
 
     # case of multiple ellipsoids but only one density value
-    if type(ellipsoids) is list and type(density) is not list:
-        raise ValueError(
-            "Ellipsoids is a list, but density is not."
-            "Perhaps multiple arguments were given for ellipsoids"
-            " but only one value was given for density?"
-        )
-
-    # case of passing density as a list of differing size to ellipsoids
     if len(ellipsoids) != len(density):
-        raise ValueError(
-            f"{len(ellipsoids)} arguments were given for ellipsoids"
-            f" but {len(density)} values were given for density."
-        )
+        raise ValueError("Number of ellipsoids should match the number of"
+                         " density values, instead ellipsoids ="
+                         f" {len(ellipsoids)} and density = {len(density)}")
 
     for index, ellipsoid in enumerate(ellipsoids):
         # unpack instances
