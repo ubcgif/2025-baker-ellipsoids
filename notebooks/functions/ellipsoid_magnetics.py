@@ -116,7 +116,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     h0 = np.asarray(h0)
 
     # loop over each given ellipsoid
-    for index, ellipsoid in enumerate(ellipsoids):
+    for ellipsoid, susceptibility in zip (ellipsoids, susceptibility, strict=True):
 
         # unpack instance
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
@@ -143,10 +143,10 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
         internal_mask = internal_mask.ravel()
         # create K matrix
-        if type(susceptibility[index]) is not np.ndarray:
-            k_matrix = susceptibility[index] * np.eye(3)
+        if type(susceptibility) is not np.ndarray:
+            k_matrix = susceptibility * np.eye(3)
         else:
-            k_matrix = susceptibility[index]
+            k_matrix = susceptibility
 
         k_rot = r.T @ k_matrix @ r
         # create N matricies for each given point
@@ -172,7 +172,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             be[idx] += 1e9 * mu_0 * hr[0]
             bn[idx] += 1e9 * mu_0 * hr[1]
             bu[idx] += 1e9 * mu_0 * hr[2]
-
+    
         be = be.reshape(cast.shape)
         bn = bn.reshape(cast.shape)
         bu = bu.reshape(cast.shape)

@@ -103,13 +103,8 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     if not isinstance(density, Iterable):
         density = [density]
 
-    # case of multiple ellipsoids but only one density value
-    if len(ellipsoids) != len(density):
-        raise ValueError("Number of ellipsoids should match the number of"
-                         " density values, instead ellipsoids ="
-                         f" {len(ellipsoids)} and density = {len(density)}")
-
-    for index, ellipsoid in enumerate(ellipsoids):
+    # for ellipsoid, density in zip (ellipsoids, density, strict=True):
+    for ellipsoid, density in zip (ellipsoids, density, strict=True):
         # unpack instances
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
@@ -130,7 +125,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # calculate gravity component for the rotated points
-        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density[index])
+        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
         gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
 
         # project onto upward unit vector, axis U
