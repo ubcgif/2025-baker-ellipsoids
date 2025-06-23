@@ -87,14 +87,6 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
     For derivations of the equations, and methods used in this code.
     """
-    # unpack coordinates, set up arrays to hold results
-    e, n, u = coordinates[0], coordinates[1], coordinates[2]
-    cast = np.broadcast(e, n, u)
-    be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
-
-    # unpack external field, change to vector
-    magnitude, inclination, declination = external_field
-    h0 = hm.magnetic_angles_to_vec(magnitude, inclination, declination)
 
     # check inputs are of the correct type
     if not isinstance(ellipsoids, Iterable):
@@ -103,16 +95,19 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     if not isinstance(susceptibility, Iterable):
         susceptibility = [susceptibility]
 
+    if not isinstance(external_field, Iterable) and len(external_field) != 3:
+        raise ValueError("External field  must contain three values (M, I, D):"
+                         f" instead got {external_field}.")
 
-    if not isinstance(external_field, Iterable):
-        raise ValueError("H0 values of the regional field  must be an tuple"
-                         " of three values (M, I, D): instead got "
-                         f" {external_field}.")
+    # unpack coordinates, set up arrays to hold results
+    e, n, u = coordinates[0], coordinates[1], coordinates[2]
+    cast = np.broadcast(e, n, u)
+    be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
 
-    if len(external_field) != 3:
-        raise ValueError("H0 values of the regional field  must be an tuple"
-                         " of three values (M, I, D): instead got "
-                         f" {external_field}.")
+    # unpack external field, change to vector
+    magnitude, inclination, declination = external_field
+    h0 = hm.magnetic_angles_to_vec(magnitude, inclination, declination)
+    h0 = np.asarray(h0)
 
     # loop over each given ellipsoid
     for index, ellipsoid in enumerate(ellipsoids):
