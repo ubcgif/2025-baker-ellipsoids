@@ -8,6 +8,7 @@ from .create_ellipsoid import (
     TriaxialEllipsoid,
 )
 from .ellipsoid_magnetics import ellipsoid_magnetics
+from .ellipsoid_magnetics import _depol_oblate_int, _depol_prolate_int, _depol_triaxial_int
 import harmonica as hm
 
 def test_magnetic_symmetry():
@@ -256,3 +257,18 @@ def test_euler_rotation_symmetry_mag():
         OblateEllipsoid(b, a, yaw=180, pitch=180, centre=(0, 0, 0)),
     ]
     check_rotation_equivalence(base_obl, obl_rotated)
+    
+def test_internal_depol_equals_1():
+    """ Test that the internal depol tensor component sum equals 1 """
+    
+    onxx, onyy, onzz = _depol_oblate_int(3, 5, 5)
+    np.testing.assert_allclose((onxx + onyy + onzz), 1)
+    
+    pnxx, pnyy, pnzz = _depol_prolate_int(5, 3, 3)
+    np.testing.assert_allclose((pnxx + pnyy + pnzz), 1)
+    
+    tnxx, tnyy, tnzz = _depol_triaxial_int(5, 4, 3)
+    np.testing.assert_allclose((tnxx + tnyy + tnzz), 1)
+    
+    
+    
