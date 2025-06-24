@@ -69,7 +69,7 @@ def _calculate_lambda(x, y, z, a, b, c):
     return lmbda
 
 
-def _get_v_as_Euler(yaw, pitch, roll):
+def _get_v_as_euler(yaw, pitch, roll):
     """
     Generate a rotation matrix (V) from Tait-Bryan angles: yaw, pitch,
     and roll.

@@ -10,7 +10,14 @@ from .create_ellipsoid import (
 from .ellipsoid_magnetics import ellipsoid_magnetics
 from .ellipsoid_magnetics import _depol_oblate_int, _depol_prolate_int, _depol_triaxial_int
 import harmonica as hm
+from .utils_ellipsoids import _get_v_as_euler
 
+def test_euler_returns():
+    """ Check the euler returns are exact"""
+    r0 = _get_v_as_euler(0, 0, 0)
+    r360 = _get_v_as_euler(360, 0, 0)
+    assert np.allclose(r0, r360)
+    
 def test_magnetic_symmetry():
     """
     Check the symmetry of magentic calculations at surfaces above and below
@@ -130,7 +137,7 @@ def test_mag_ext_int_boundary():
 
     ellipsoid = OblateEllipsoid(a, b, yaw=0, pitch=0, centre=(0, 0, 0))
 
-    e = np.array([[49.9999999, 50.0000001]])
+    e = np.array([[49.9, 50.00]])
     n = np.array([[0.0, 0.0]])
     u = np.array([[0.0, 0.0]])
     coordinates = (e, n, u)
@@ -138,9 +145,9 @@ def test_mag_ext_int_boundary():
     be, bn, bu = ellipsoid_magnetics(coordinates, ellipsoid, susceptabililty, external_field, field="b")
 
     # ideally the tolerances are lower for these - issue created
-    np.testing.assert_allclose(be[0, 0], be[0, 1], rtol=5e-4, atol=5e-4)
-    np.testing.assert_allclose(bn[0, 0], bn[0, 1], rtol=5e-4, atol=5e-4)
-    np.testing.assert_allclose(bu[0, 0], bu[0, 1], rtol=5e-4, atol=5e-4)
+    np.testing.assert_allclose(be[0, 0], be[0, 1], rtol=1e-6)
+    np.testing.assert_allclose(bn[0, 0], bn[0, 1], rtol=1e-6)
+    np.testing.assert_allclose(bu[0, 0], bu[0, 1], rtol=1e-6)
 
 
 def test_mag_flipped_ellipsoid():
@@ -232,6 +239,7 @@ def test_euler_rotation_symmetry_mag():
             np.testing.assert_allclose(be, base_be, rtol=1e-5, atol=1e-8)
             np.testing.assert_allclose(bn, base_bn, rtol=1e-5, atol=1e-8)
             np.testing.assert_allclose(bu, base_bu, rtol=1e-5, atol=1e-8)
+            
 
     # triaxial cases
     base_tri = TriaxialEllipsoid(a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0))

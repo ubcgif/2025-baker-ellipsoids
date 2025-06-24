@@ -8,7 +8,7 @@ from scipy.constants import mu_0
 from scipy.special import ellipeinc, ellipkinc
 import harmonica as hm
 from .ellipsoid_gravity import _get_abc
-from .utils_ellipsoids import _calculate_lambda, _get_v_as_Euler
+from .utils_ellipsoids import _calculate_lambda, _get_v_as_euler
 from collections.abc import Iterable
 
 # internal field N matrix functions
@@ -104,7 +104,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     n = np.atleast_1d(np.asarray(coordinates[1]))
     u = np.atleast_1d(np.asarray(coordinates[2]))
 
-    cast = e.shape
+    broadcast = (np.broadcast(e, n, u)).shape
     be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
     be = be.ravel()
     bn = bn.ravel()
@@ -118,6 +118,17 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     # loop over each given ellipsoid
     for ellipsoid, susceptibility in zip (ellipsoids, susceptibility, strict=True):
 
+        # check susceptability is in the correct format
+        if isinstance(susceptibility, (int, float)):
+            k_matrix = susceptibility * np.eye(3)
+        elif isinstance(susceptibility, (list, tuple, np.ndarray)):
+            k_array = np.asarray(susceptibility)
+            if k_array.shape != (3, 3):
+                raise ValueError(f"Susceptibility matrix must be 3x3, got shape {k_array.shape}")
+            k_matrix = k_array
+        else:
+            raise ValueError(f"Unrecognized susceptibility type: {type(susceptibility)}")
+
         # unpack instance
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
@@ -129,7 +140,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
                                 (u - oz).ravel()))
 
         # get observation points, rotate them
-        r = _get_v_as_Euler(yaw, pitch, roll)
+        r = _get_v_as_euler(yaw, pitch, roll)
         rotated_points = r.T @ obs_points
         x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
         x = x.ravel()
@@ -142,44 +153,44 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
         internal_mask = internal_mask.ravel()
-        # create K matrix
-        if type(susceptibility) is not np.ndarray:
-            k_matrix = susceptibility * np.eye(3)
-        else:
-            k_matrix = susceptibility
 
         k_rot = r.T @ k_matrix @ r
+        h0_rot = r.T @ h0 
+        n_cross = _construct_n_matrix_internal(a, b, c)
+        m = k_rot @ np.linalg.inv(np.eye(3) + n_cross @ k_rot) @ h0_rot
+
         # create N matricies for each given point
         for idx in range(len(lmbda)):
             lam = lmbda[idx]
             xi, yi, zi = x[idx], y[idx], z[idx]
             is_internal = internal_mask[idx]
 
-            n_cross = _construct_n_matrix_internal(a, b, c)
-
+            
             if is_internal:
-                n = n_cross
+            
+                h_int = np.linalg.inv(np.eye(3) + n_cross @ k_rot) @ h0_rot
+                hr = r @ h_int
+                be[idx] += 1e9 * mu_0 * hr[0]
+                bn[idx] += 1e9 * mu_0 * hr[1]
+                bu[idx] += 1e9 * mu_0 * hr[2]
+                
             else:
-                n = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
 
-            # compute rotation and final H() values
-            nr = r.T @ n @ r
-            n_cross_rot = r.T @ n_cross @ r
-            h_cross = np.linalg.inv(np.eye(3) + n_cross_rot @ k_rot) @ h0
-            hr = (nr @ k_rot) @ h_cross
+                nr = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
 
-            # sum across all components and ellipsoids
-            be[idx] += 1e9 * mu_0 * hr[0]
-            bn[idx] += 1e9 * mu_0 * hr[1]
-            bu[idx] += 1e9 * mu_0 * hr[2]
-    
-        be = be.reshape(cast.shape)
-        bn = bn.reshape(cast.shape)
-        bu = bu.reshape(cast.shape)
+                h_ext_local = nr @ m
+                hr = r @ h_ext_local
+                
+                be[idx] += 1e9 * mu_0 * hr[0]
+                bn[idx] += 1e9 * mu_0 * hr[1]
+                bu[idx] += 1e9 * mu_0 * hr[2]
+
+    be = be.reshape(broadcast)
+    bn = bn.reshape(broadcast)
+    bu = bu.reshape(broadcast)
 
     # return according to user
     return {"e": be, "n": bn, "u": bu}.get(field, (be, bn, bu))
-
 
 # construct components of the internal matrix
 
@@ -279,11 +290,11 @@ def _construct_n_matrix_internal(a, b, c):
 
     # only diagonal elements
     # Nii corresponds to the above functions
-    if np.all((a > b) & (b > c)):
+    if a > b and b > c:
         func = _depol_triaxial_int(a, b, c)
-    if np.all((a > b) & (b == c)):
+    if a > b and b == c:
         func = _depol_prolate_int(a, b, c)
-    if np.all((a < b) & (b == c)):
+    if a < b and b == c:
         func = _depol_oblate_int(a, b, c)
 
     # construct identity matrix

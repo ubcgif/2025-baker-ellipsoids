@@ -1,6 +1,6 @@
 from .utils_ellipsoids import (
     _calculate_lambda,
-    _get_v_as_Euler,
+    _get_v_as_euler,
     _global_to_local,
     _generate_basic_ellipsoid,
 )
