@@ -6,7 +6,7 @@ import numpy as np
 from scipy.constants import gravitational_constant as g
 from scipy.special import ellipeinc, ellipkinc
 
-from .utils_ellipsoids import _calculate_lambda, _get_v_as_Euler
+from .utils_ellipsoids import _calculate_lambda, _get_v_as_euler
 from collections.abc import Iterable
 
 def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
@@ -115,7 +115,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
 
         # create rotation matrix
-        r = _get_v_as_Euler(yaw, pitch, roll)
+        r = _get_v_as_euler(yaw, pitch, roll)
 
         # rotate observation points
         rotated_points = r.T @ obs_points
