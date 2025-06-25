@@ -113,14 +113,13 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     # unpack external field, change to vector
     magnitude, inclination, declination = external_field
     h0 = hm.magnetic_angles_to_vec(magnitude, inclination, declination)
-    h0 = np.asarray(h0)
 
     # loop over each given ellipsoid
     for ellipsoid, susceptibility in zip (ellipsoids, susceptibility, strict=True):
 
         # check susceptability is in the correct format
         if isinstance(susceptibility, (int, float)):
-            k_matrix = susceptibility * np.eye(3)
+            k_matrix = susceptibility * np.identity(3)
         elif isinstance(susceptibility, (list, tuple, np.ndarray)):
             k_array = np.asarray(susceptibility)
             if k_array.shape != (3, 3):
@@ -154,11 +153,12 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
         internal_mask = internal_mask.ravel()
 
-        k_rot = r.T @ k_matrix @ r
+        k_rot = k_matrix
         h0_rot = r.T @ h0 
         n_cross = _construct_n_matrix_internal(a, b, c)
-        m = k_rot @ np.linalg.inv(np.eye(3) + n_cross @ k_rot) @ h0_rot
-
+        m = k_rot @ np.linalg.inv(np.identity(3) + n_cross @ k_rot) @ h0_rot
+        h_int = n_cross @ m
+        
         # create N matricies for each given point
         for idx in range(len(lmbda)):
             lam = lmbda[idx]
@@ -167,9 +167,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
             
             if is_internal:
-            
-                h_int = np.linalg.inv(np.eye(3) + n_cross @ k_rot) @ h0_rot
+
                 hr = r @ h_int
+            
                 be[idx] += 1e9 * mu_0 * hr[0]
                 bn[idx] += 1e9 * mu_0 * hr[1]
                 bu[idx] += 1e9 * mu_0 * hr[2]
@@ -177,9 +177,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             else:
 
                 nr = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
-
-                h_ext_local = nr @ m
-                hr = r @ h_ext_local
+                
+                h_ext = nr @ m
+                hr = r @ h_ext
                 
                 be[idx] += 1e9 * mu_0 * hr[0]
                 bn[idx] += 1e9 * mu_0 * hr[1]
@@ -242,6 +242,9 @@ def _depol_prolate_int(a, b, c):
 
     """
     m = a / b
+    if not m > 1:
+        raise ValueError(f"Invalid aspect ratio for prolate ellipsoid: a={a}, b={b}, a/b={m}")
+
     nxx = (1 / (m**2 - 1)) * (((m / np.sqrt(m**2 - 1)) *
                                np.log(m + np.sqrt(m**2 - 1))) - 1)
     nyy = nzz = 0.5 * (1 - nxx)
@@ -266,6 +269,9 @@ def _depol_oblate_int(a, b, c):
     """
 
     m = a / b
+    if not 0 < m < 1:
+        raise ValueError(f"Invalid aspect ratio for oblate ellipsoid: a={a}, b={b}, a/b={m}")
+   
     nxx = 1 / (1 - m**2) * (1 - (m / np.sqrt(1 - m**2)) * np.arccos(m))
     nyy = nzz = 0.5 * (1 - nxx)
 
@@ -292,16 +298,15 @@ def _construct_n_matrix_internal(a, b, c):
     # Nii corresponds to the above functions
     if a > b and b > c:
         func = _depol_triaxial_int(a, b, c)
-    if a > b and b == c:
+    elif a > b and b == c:
         func = _depol_prolate_int(a, b, c)
-    if a < b and b == c:
+    elif a < b and b == c:
         func = _depol_oblate_int(a, b, c)
-
+    else:
+        raise ValueError("Could not determine ellipsoid type for"
+                         " values given.")
     # construct identity matrix
-    n = np.eye(3)
-
-    for i in range(3):
-        n[i][i] *= func[i]
+    n = np.diag(func)
 
     return n
 
@@ -482,7 +487,7 @@ def _construct_n_matrix_external(x, y, z, a, b, c, lmbda):
     # g values here are equivalent to the A(lambda) etc values previously.
     # h values as above
     # lambda derivatives as above
-    n = np.eye(3)
+    n = np.identity(3)
     r = [x, y, z]
     gvals = _get_g_values_magnetics(a, b, c, lmbda)
     derivs_lmbda = _spatial_deriv_lambda(x, y, z, a, b, c, lmbda)
