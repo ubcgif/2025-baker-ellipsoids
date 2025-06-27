@@ -53,7 +53,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             - Orientation : yaw, pitch, roll**
             - Origin : centre point (x, y, z)
 
-    k : list of floats or arrays
+    susceptibility : list of floats or arrays
         Susceptibilty value. A single value or list of single values assumes
         isotropy in the body/bodies. An array or list of arrays should be a 3x3
         matrix with the given susceptibilty components, suggesting an
@@ -100,15 +100,10 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
                          f" instead got {external_field}.")
 
     # unpack coordinates, set up arrays to hold results
-    e = np.atleast_1d(np.asarray(coordinates[0]))
-    n = np.atleast_1d(np.asarray(coordinates[1]))
-    u = np.atleast_1d(np.asarray(coordinates[2]))
+    e, n, u = [np.atleast_1d(np.asarray(coordinates[i])) for i in range(3)]
 
     broadcast = (np.broadcast(e, n, u)).shape
-    be, bn, bu = np.zeros(e.shape), np.zeros(e.shape), np.zeros(e.shape)
-    be = be.ravel()
-    bn = bn.ravel()
-    bu = bu.ravel()
+    be, bn, bu = np.zeros(e.shape).ravel(), np.zeros(e.shape).ravel(), np.zeros(e.shape).ravel()
 
     # unpack external field, change to vector
     magnitude, inclination, declination = external_field
@@ -118,55 +113,26 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     # loop over each given ellipsoid
     for ellipsoid, susceptibility in zip (ellipsoids, susceptibility, strict=True):
 
-        # check susceptability is in the correct format
-        if isinstance(susceptibility, (int, float)):
-            k_matrix = susceptibility * np.identity(3)
-        elif isinstance(susceptibility, (list, tuple, np.ndarray)):
-            k_array = np.asarray(susceptibility)
-            if k_array.shape != (3, 3):
-                raise ValueError(f"Susceptibility matrix must be 3x3, got shape {k_array.shape}")
-            k_matrix = k_array
-        else:
-            raise ValueError(f"Unrecognized susceptibility type: {type(susceptibility)}")
-
-        # unpack instance
+        k_matrix = check_susceptibility(susceptibility)
+     
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
-        yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
         ox, oy, oz = ellipsoid.centre
-
-        # preserve ellipsoid shape, translate origin of ellipsoid
+        yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
+    
         cast = np.broadcast(e, n, u)
-        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(),
-                                (u - oz).ravel()))
-
-        # get observation points, rotate them
+        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
         r = _get_v_as_euler(yaw, pitch, roll)
-        rotated_points = r.T @ obs_points
-        x, y, z = tuple(c.reshape(cast.shape) for c in rotated_points)
-        x = x.ravel()
-        y = y.ravel()
-        z = z.ravel()
-
-        # create boolean for internal vs external field points
-        # and compute lambda for each coordinate point
-        lmbda = _calculate_lambda(x, y, z, a, b, c)
-        lmbda = lmbda.ravel()
-
-        internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
-        internal_mask = internal_mask.ravel()
-        # lmbda[internal_mask] = 0
+        rotated = r.T @ obs_points
+        x, y, z = [axis.reshape(cast.shape).ravel() for axis in rotated]
         
-        k_rot = k_matrix
+        lmbda = _calculate_lambda(x, y, z, a, b, c).ravel()
+        internal_mask = ((x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)) < 1
+
         h0_rot = r.T @ h0 
+        m = _get_magnetisation(a, b, c, k_matrix, h0_rot)
         n_cross = _construct_n_matrix_internal(a, b, c)
-        
-        #print("With ncross 1st: " , np.linalg.cond(np.identity(3) + n_cross @ k_rot))
-        #print("With k 1st: ", np.linalg.cond(np.identity(3) + k_rot @ n_cross))
-        
-        h_cross = np.linalg.solve(np.identity(3) + n_cross @ k_rot, h0_rot)
-        m = np.linalg.solve(np.identity(3) + k_rot @ n_cross, k_rot @ h0_rot)
-        h_int = (r @ n_cross @ r.T) @ k_rot @ h_cross
-        #print('M matrix', m)
+
+
         # create N matricies for each given point
         for idx in range(len(lmbda)):
             lam = lmbda[idx]
@@ -176,8 +142,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             
             if is_internal:
 
-                hr = r @ h_int
+                hr = (-n_cross + np.identity(3)) @ m
                 
+                hr = r @ hr
                 be[idx] += 1e9 * mu_0 * hr[0]
                 bn[idx] += 1e9 * mu_0 * hr[1]
                 bu[idx] += 1e9 * mu_0 * hr[2]
@@ -185,8 +152,8 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             else:
 
                 nr = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
-                
-                hr = (r @ nr @ r.T) @ m
+
+                hr = nr @ m
                 #print('H_ext', hr)
                 #hr = r @ h_ext
                 
@@ -194,7 +161,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
                 bn[idx] += 1e9 * mu_0 * hr[1]
                 bu[idx] += 1e9 * mu_0 * hr[2]
 
-    
+
     be = be.reshape(broadcast)
     bn = bn.reshape(broadcast)
     bu = bu.reshape(broadcast)
@@ -202,7 +169,65 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
     # return according to user
     return {"e": be, "n": bn, "u": bu}.get(field, (be, bn, bu))
 
-# construct components of the internal matrix
+def _get_magnetisation(a, b, c, k, h0):
+    """
+    Get the magnetization vector from the ellipsoid parameters and the rotated
+    external field. 
+    
+    parameters
+    ----------
+    a, b, c : floats
+        Semiaxis lengths of the ellipsoid.
+    
+    k: float, matrix
+        Susceptabiity value/s (float for isotropic or matrix for anisotropic)
+    
+    h0: array
+        the rotated background field (local coordinates).
+    
+    returns
+    -------
+    m (magentisation): array
+        the magnetisation vector for the define body.
+
+    """
+    
+    n_cross = _construct_n_matrix_internal(a, b, c)
+    inv = np.linalg.inv(np.identity(3) - (n_cross @ k))
+    m = k @ inv @ h0
+    
+    return m
+
+def check_susceptibility(susceptibility):
+    """
+    Check whether user has input a k value with anisotropy.
+    
+    parameters
+    ----------
+    
+    susceptibility : list of floats or arrays
+        Susceptibilty value. A single value or list of single values assumes
+        isotropy in the body/bodies. An array or list of arrays should be a 3x3
+        matrix with the given susceptibilty components, suggesting an
+        anisotropic susceptibility.
+        
+    returns 
+    -------
+    k_matrix: array
+        the matrix for k (isotropic or anisotropic)
+
+    """
+    if isinstance(susceptibility, (int, float)):
+        k_matrix = susceptibility * np.identity(3)
+    elif isinstance(susceptibility, (list, tuple, np.ndarray)):
+        k_array = np.asarray(susceptibility)
+        if k_array.shape != (3, 3):
+            raise ValueError(f"Susceptibility matrix must be 3x3, got shape {k_array.shape}")
+        k_matrix = k_array
+    else:
+        raise ValueError(f"Unrecognized susceptibility type: {type(susceptibility)}")
+        
+    return k_matrix
 
 
 def _depol_triaxial_int(a, b, c):
@@ -425,7 +450,10 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
     # trixial case
     if a > b > c:
-        phi = np.arcsin(np.sqrt((a**2 - c**2) / (c**2 + lmbda)))
+        int_arcsin = np.sqrt((a**2 - c**2) / (a**2 + lmbda))
+        phi = np.arcsin(int_arcsin)
+
+
         k = (a**2 - b**2) / (a**2 - c**2)
         g1 = (2 / ((a**2 - b**2) * (a**2 - c**2)**0.5)) * \
             (ellipkinc(phi, k) - ellipeinc(phi, k))
