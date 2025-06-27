@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as r
 
-
 def _calculate_lambda(x, y, z, a, b, c):
     """
     Calculate the value of lambda, the parameter defining surfaces in a
@@ -35,7 +34,9 @@ def _calculate_lambda(x, y, z, a, b, c):
             "Arrays x, y, z should contain points which lie outside"
             " of the surface defined by a, b, c"
         )
-
+        
+    #inside_mask = (x**2 / a**2) + (y**2 / b**2) + (z**2 / c**2) < 1
+    
     # compute lambda
     p_0 = (
         a**2 * b**2 * c**2
@@ -65,6 +66,8 @@ def _calculate_lambda(x, y, z, a, b, c):
     theta = np.arccos(theta_internal_1)
 
     lmbda = 2 * np.sqrt((-p / 3)) * np.cos(theta / 3) - p_2 / 3
+    
+    #lmbda[inside_mask] = 0
 
     return lmbda
 

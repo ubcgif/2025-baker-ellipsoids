@@ -112,8 +112,9 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
     # unpack external field, change to vector
     magnitude, inclination, declination = external_field
-    h0 = hm.magnetic_angles_to_vec(magnitude, inclination, declination)
-
+    b0 = np.array(hm.magnetic_angles_to_vec(magnitude, inclination, declination))
+    h0 = b0 * 1e-9 / mu_0
+    
     # loop over each given ellipsoid
     for ellipsoid, susceptibility in zip (ellipsoids, susceptibility, strict=True):
 
@@ -152,12 +153,18 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
         internal_mask = internal_mask.ravel()
-
+        lmbda[internal_mask] = 0
+        
         k_rot = k_matrix
         h0_rot = r.T @ h0 
         n_cross = _construct_n_matrix_internal(a, b, c)
-        m = k_rot @ np.linalg.inv(np.identity(3) + n_cross @ k_rot) @ h0_rot
-        h_int = n_cross @ m
+        
+        # print("With ncross 1st: " , np.linalg.cond(np.identity(3) + n_cross @ k_rot))
+        # print("With k 1st: ", np.linalg.cond(np.identity(3) + k_rot @ n_cross))
+        
+        h_cross = np.linalg.solve(np.identity(3) + n_cross @ k_rot, h0_rot)
+        m = np.linalg.solve(np.identity(3) + k_rot @ n_cross, k_rot @ h0_rot)
+        h_int = (r @ n_cross @ r.T) @ k_rot @ h_cross
         
         # create N matricies for each given point
         for idx in range(len(lmbda)):
@@ -178,8 +185,8 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
                 nr = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
                 
-                h_ext = nr @ m
-                hr = r @ h_ext
+                hr = (r @ nr @ r.T) @ m
+                #hr = r @ h_ext
                 
                 be[idx] += 1e9 * mu_0 * hr[0]
                 bn[idx] += 1e9 * mu_0 * hr[1]
@@ -213,7 +220,7 @@ def _depol_triaxial_int(a, b, c):
     """
 
     phi = np.arccos(c / a)
-    k = np.sqrt((a**2 - b**2) / (a**2 - c**2))
+    k = (a**2 - b**2) / (a**2 - c**2)
 
     nxx = (a * b * c) / (np.sqrt(a**2 - c**2) * (a**2 - b**2)) \
         * (ellipkinc(phi, k) - ellipeinc(phi, k))
@@ -222,6 +229,7 @@ def _depol_triaxial_int(a, b, c):
     nzz = -1 * ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) \
         * ellipeinc(phi, k) + b**2 / (b**2 - c**2)
 
+    np.testing.assert_allclose((nxx + nyy + nzz), 1, rtol=1e-4)
     return nxx, nyy, nzz
 
 
@@ -247,6 +255,10 @@ def _depol_prolate_int(a, b, c):
 
     nxx = (1 / (m**2 - 1)) * (((m / np.sqrt(m**2 - 1)) *
                                np.log(m + np.sqrt(m**2 - 1))) - 1)
+    
+    if (m + np.sqrt(m**2 - 1)) < 0 or (m**2 - 1) < 0:
+        raise RuntimeWarning("Values in the internal N matrix calculation"
+                             " are less than 0 - errors may occur.")
     nyy = nzz = 0.5 * (1 - nxx)
 
     return nxx, nyy, nzz
@@ -308,6 +320,7 @@ def _construct_n_matrix_internal(a, b, c):
     # construct identity matrix
     n = np.diag(func)
 
+
     return n
 
 
@@ -340,7 +353,7 @@ def _get_h_values(a, b, c, lmbda):
     axes = np.array([a, b, c])
     r = np.sqrt(np.prod(axes**2 + lmbda))
 
-    return -1 / ((axes**2 + lmbda) * r)
+    return (-1 / ((axes**2 + lmbda) * r))
 
 
 def _spatial_deriv_lambda(x, y, z, a, b, c, lmbda):
@@ -368,21 +381,20 @@ def _spatial_deriv_lambda(x, y, z, a, b, c, lmbda):
 
     """
 
-    # numerators (shape: same as x, y, z)
-    num_x = 2 * x / (a**2 + lmbda)
-    num_y = 2 * y / (b**2 + lmbda)
-    num_z = 2 * z / (c**2 + lmbda)
-
-    # denominator
+    # explicitly state:
+        
     denom = (
-        (x / (a**2 + lmbda)) ** 2
-        + (y / (b**2 + lmbda)) ** 2
-        + (z / (c**2 + lmbda)) ** 2
+        (x / (a**2 + lmbda))**2 +
+        (y / (b**2 + lmbda))**2 +
+        (z / (c**2 + lmbda))**2
     )
+    
+    dλ_dx = (2 * x) / (a**2 + lmbda) / denom
+    dλ_dy = (2 * y) / (b**2 + lmbda) / denom
+    dλ_dz = (2 * z) / (c**2 + lmbda) / denom
 
-    vals = np.stack([num_x / denom, num_y / denom, num_z / denom], axis=-1)
+    return np.stack([dλ_dx, dλ_dy, dλ_dz], axis=-1)
 
-    return vals
 
 
 def _get_g_values_magnetics(a, b, c, lmbda):
@@ -410,28 +422,37 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
     # trixial case
     if a > b > c:
-        func = _get_abc(a, b, c, lmbda)
-        gvals_x, gvals_y, gvals_z = func[0], func[1], func[2]
+        phi = np.arcsin(np.sqrt((a**2 - c**2) / (c**2 + lmbda)))
+        k = (a**2 - b**2) / (a**2 - c**2)
+        g1 = (2 / ((a**2 - b**2) * (a**2 - c**2)**0.5)) * \
+            (ellipkinc(phi, k) - ellipeinc(phi, k))
+            
+        g2_multiplier = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
+        g2_elliptics = ellipeinc(phi, k) - ((b**2 - c**2)/(a**2 - c**2)) * ellipkinc(phi, k)
+        g2_last_term = ((a**2 - b**2) / np.sqrt(a**2 - c**2)) * np.sqrt((c**2 + lmbda) / ((a**2 + lmbda) * (b**2 + lmbda)))
 
+        g2 = g2_multiplier * (g2_elliptics - g2_last_term)
+        
+        g3_term_1 = (2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))) * ellipeinc(phi, k)
+        g3_term_2 = (2 / (b**2 - c**2)) * np.sqrt((b**2 + lmbda) / ((a**2 + lmbda) * (c**2 + lmbda)))
+        g3 = g3_term_1 + g3_term_2
+        
+        gvals_x, gvals_y, gvals_z = g1, g2, g3
     # prolate case
     if a > b and b == c:
-        g1 = (
-            2
-            / ((a**2 - b**2) ** (3 / 2))
-            * (
-                np.log(
-                    ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5)
-                    / (b**2 + lmbda) ** 0.5
-                )
-                - ((a**2 - b**2) / (a**2 + lmbda)) ** 0.5
-            )
+        e2 = a**2 - b**2
+        sqrt_e = np.sqrt(e2)
+        sqrt_l1 = np.sqrt(a**2 + lmbda)
+        sqrt_l2 = np.sqrt(b**2 + lmbda)
+    
+        # Equation (38): g1
+        g1 = (2 / (e2 ** (3 / 2))) * (
+            np.log((sqrt_e + sqrt_l1) / sqrt_l2) - sqrt_e / sqrt_l1
         )
-        g2 = 1 / ((a**2 - b**2) ** 3 / 2) * (
-            ((a**2 - b**2) * (a**2 + lmbda) ** 0.5) / (b**2 + lmbda)
-        ) - (
-            np.log(
-                ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5) / (b**2 + lmbda) ** 0.5
-            )
+    
+        # Equation (39): g2 = g3
+        g2 = (1 / (e2 ** (3 / 2))) * (
+            (e2 * sqrt_l1) / (b**2 + lmbda) - np.log((sqrt_e + sqrt_l1) / sqrt_l2)
         )
         gvals_x, gvals_y, gvals_z = g1, g2, g2
 
@@ -439,18 +460,18 @@ def _get_g_values_magnetics(a, b, c, lmbda):
     if a < b and b == c:
         g1 = (
             2
-            / ((b**2 - a**2) ** 3 / 2)
+            / ((b**2 - a**2) ** (3 / 2))
             * (
-                (((b**2 - a**2) / (a**2 + lmbda)) ** 0.5)
-                - np.arctan(((b**2 - a**2) / (a**2 + lmbda)) ** 0.5)
+                (np.sqrt((b**2 - a**2) / (a**2 + lmbda)))
+                - np.arctan(np.sqrt((b**2 - a**2) / (a**2 + lmbda)))
             )
         )
         g2 = (
             1
-            / ((b**2 - a**2) ** 3 / 2)
+            / ((b**2 - a**2) ** (3 / 2))
             * (
-                np.arctan(((b**2 - a**2) / (a**2 + lmbda)) ** 0.5)
-                - (((b**2 - a**2) * (a**2 + lmbda)) ** 0.5) / (b**2 + lmbda)
+                np.arctan(np.sqrt((b**2 - a**2) / (a**2 + lmbda)))
+                - (np.sqrt((b**2 - a**2) * (a**2 + lmbda))) / (b**2 + lmbda)
             )
         )
 
@@ -487,7 +508,7 @@ def _construct_n_matrix_external(x, y, z, a, b, c, lmbda):
     # g values here are equivalent to the A(lambda) etc values previously.
     # h values as above
     # lambda derivatives as above
-    n = np.identity(3)
+    n = np.empty((3, 3))
     r = [x, y, z]
     gvals = _get_g_values_magnetics(a, b, c, lmbda)
     derivs_lmbda = _spatial_deriv_lambda(x, y, z, a, b, c, lmbda)
@@ -496,10 +517,17 @@ def _construct_n_matrix_external(x, y, z, a, b, c, lmbda):
     for i in range(len(n)):
         for j in range(len(n[0])):
             if i == j:
-                n[i][j] = (-a * b * c / 2) * (
+                n[i][j] = -1 * ((a * b * c) / 2) * (
                     derivs_lmbda[i] * h_vals[i] * r[i] + gvals[i]
                 )
             else:
-                n[i][j] = (-a * b * c / 2) * (derivs_lmbda[i] * h_vals[j] * r[j])
+                n[i][j] = -1 * ((a * b * c) / 2) * (derivs_lmbda[i] * h_vals[j] * r[j])
+                
+    trace_terms = []
+    for i in range(3):
+        trace_component = derivs_lmbda[i] * h_vals[i] * r[i] + gvals[i]
+        trace_terms.append(trace_component)
 
+    #print(n)
+    #np.testing.assert_allclose(n[0][0] + n[1][1] + n[2][2], 0)
     return n

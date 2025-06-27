@@ -144,43 +144,43 @@ def _get_abc(a, b, c, lmbda):
     """
     Compute the A(λ), B(λ), and C(λ) functions using elliptic integrals, as
     required for potiential field calculations of ellipsoidal bodies.
-
+     
     Parameters
     ----------
     x, y, z : array_like or float
         Cartesian observation coordinates. Each can be a scalar, 1D array, or
         2D array, depending on the evaluation grid.
-
+     
     a, b, c : float
         Semiaxis lengths of the ellipsoid (a ≥ b ≥ c). These must conform to
         the type of ellipsoid used (e.g., triaxial, prolate, oblate).
-
+     
     lmbda : array_like or float
         The λ (lambda) parameter(s) associated with the confocal ellipsoidal
         coordinate surfaces. Can be a scalar or an array matching the shape of
         the observation points.
-
+     
     Returns
     -------
     A_lmbda : ndarray
         A(λ) function values at each observation point.
-
+     
     B_lmbda : ndarray
         B(λ) function values at each observation point.
-
+     
     C_lmbda : ndarray
         C(λ) function values at each observation point.
     """
-
+     
     # compute the k and theta terms for the elliptic integrals
-    k = np.sqrt((a**2 - b**2) / (a**2 - c**2))
+    k = (a**2 - b**2) / (a**2 - c**2)
     theta_prime = np.arcsin(np.sqrt((a**2 - c**2) / (a**2 + lmbda)))
-
+     
     # compute terms associated with A(lambda)
     a_coeff = 2 / ((a**2 - b**2) * np.sqrt(a**2 - c**2))
     a_elliptic_integral = ellipkinc(theta_prime, k) - ellipeinc(theta_prime, k)
     a_lmbda = a_coeff * a_elliptic_integral
-
+     
     # compute terms associated with B(lambda)
     b_coeff = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
     b_fk_coeff = (b**2 - c**2) / (a**2 - c**2)
@@ -192,7 +192,7 @@ def _get_abc(a, b, c, lmbda):
         - b_fk_coeff * ellipkinc(theta_prime, k)
         - b_fk_subtracted_term
     )
-
+     
     # compute terms associated with C(lambda)
     c_coeff = 2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
     c_ek_subtracted_term = (
@@ -201,8 +201,9 @@ def _get_abc(a, b, c, lmbda):
         theta_prime
     )  # check the brackets here ??
     c_lmbda = c_coeff * (c_ek_subtracted_term - ellipeinc(theta_prime, k))
-
+     
     return a_lmbda, b_lmbda, c_lmbda
+
 
 
 def _get_internal_g(x, y, z, a, b, c, density):

@@ -7,10 +7,16 @@ from .create_ellipsoid import (
     ProlateEllipsoid,
     TriaxialEllipsoid,
 )
-from .ellipsoid_magnetics import ellipsoid_magnetics
+from .ellipsoid_magnetics import ellipsoid_magnetics, _construct_n_matrix_internal
 from .ellipsoid_magnetics import _depol_oblate_int, _depol_prolate_int, _depol_triaxial_int
 import harmonica as hm
 from .utils_ellipsoids import _get_v_as_euler
+
+def test_numerical_instabililty_linalg():
+    
+    n_cross = _construct_n_matrix_internal(50, 49.99, 49.98)
+    h_cross = np.linalg.inv(np.identity(3) + n_cross @ k_rot) @ h0_rot
+    
 
 def test_euler_returns():
     """ Check the euler returns are exact"""
