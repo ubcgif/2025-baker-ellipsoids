@@ -149,23 +149,24 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
 
         # create boolean for internal vs external field points
         # and compute lambda for each coordinate point
-        lmbda = (_calculate_lambda(x, y, z, a, b, c)).ravel()
+        lmbda = _calculate_lambda(x, y, z, a, b, c)
+        lmbda = lmbda.ravel()
 
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
         internal_mask = internal_mask.ravel()
-        lmbda[internal_mask] = 0
+        # lmbda[internal_mask] = 0
         
         k_rot = k_matrix
         h0_rot = r.T @ h0 
         n_cross = _construct_n_matrix_internal(a, b, c)
         
-        # print("With ncross 1st: " , np.linalg.cond(np.identity(3) + n_cross @ k_rot))
-        # print("With k 1st: ", np.linalg.cond(np.identity(3) + k_rot @ n_cross))
+        #print("With ncross 1st: " , np.linalg.cond(np.identity(3) + n_cross @ k_rot))
+        #print("With k 1st: ", np.linalg.cond(np.identity(3) + k_rot @ n_cross))
         
         h_cross = np.linalg.solve(np.identity(3) + n_cross @ k_rot, h0_rot)
         m = np.linalg.solve(np.identity(3) + k_rot @ n_cross, k_rot @ h0_rot)
         h_int = (r @ n_cross @ r.T) @ k_rot @ h_cross
-        
+        #print('M matrix', m)
         # create N matricies for each given point
         for idx in range(len(lmbda)):
             lam = lmbda[idx]
@@ -176,7 +177,7 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
             if is_internal:
 
                 hr = r @ h_int
-            
+                
                 be[idx] += 1e9 * mu_0 * hr[0]
                 bn[idx] += 1e9 * mu_0 * hr[1]
                 bu[idx] += 1e9 * mu_0 * hr[2]
@@ -186,12 +187,14 @@ def ellipsoid_magnetics(coordinates, ellipsoids, susceptibility, external_field,
                 nr = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
                 
                 hr = (r @ nr @ r.T) @ m
+                #print('H_ext', hr)
                 #hr = r @ h_ext
                 
                 be[idx] += 1e9 * mu_0 * hr[0]
                 bn[idx] += 1e9 * mu_0 * hr[1]
                 bu[idx] += 1e9 * mu_0 * hr[2]
 
+    
     be = be.reshape(broadcast)
     bn = bn.reshape(broadcast)
     bu = bu.reshape(broadcast)
@@ -528,6 +531,6 @@ def _construct_n_matrix_external(x, y, z, a, b, c, lmbda):
         trace_component = derivs_lmbda[i] * h_vals[i] * r[i] + gvals[i]
         trace_terms.append(trace_component)
 
-    #print(n)
+    #print("external field N", n)
     #np.testing.assert_allclose(n[0][0] + n[1][1] + n[2][2], 0)
     return n
