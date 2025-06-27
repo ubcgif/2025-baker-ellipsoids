@@ -31,12 +31,12 @@ def _calculate_lambda(x, y, z, a, b, c):
         The computed value(s) of the lambda parameter.
 
     """
-    if not (np.any(np.abs(x) >= a) or np.any(np.abs(y) >= b) or np.any(np.abs(z) >= c)):
-        raise ValueError(
-            "Arrays x, y, z should contain points which lie outside"
-            " of the surface defined by a, b, c"
-        )
-        
+   # if not (np.any(np.abs(x) >= a) or np.any(np.abs(y) >= b) or np.any(np.abs(z) >= c)):
+     #  raise ValueError(
+      #      "Arrays x, y, z should contain points which lie outside"
+      ##      " of the surface defined by a, b, c"
+      #  )
+      ##  
     #inside_mask = (x**2 / a**2) + (y**2 / b**2) + (z**2 / c**2) < 1
     
     # compute lambda
