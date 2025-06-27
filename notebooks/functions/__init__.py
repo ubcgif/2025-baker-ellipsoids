@@ -3,6 +3,7 @@ from .utils_ellipsoids import (
     _get_v_as_euler,
     _global_to_local,
     _generate_basic_ellipsoid,
+    _sphere_magnetic
 )
 
 from .ellipsoid_gravity import (

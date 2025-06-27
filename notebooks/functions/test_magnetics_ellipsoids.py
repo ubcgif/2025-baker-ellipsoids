@@ -10,13 +10,49 @@ from .create_ellipsoid import (
 from .ellipsoid_magnetics import ellipsoid_magnetics, _construct_n_matrix_internal
 from .ellipsoid_magnetics import _depol_oblate_int, _depol_prolate_int, _depol_triaxial_int
 import harmonica as hm
-from .utils_ellipsoids import _get_v_as_euler
+from .utils_ellipsoids import _get_v_as_euler, _sphere_magnetic
 
-def test_numerical_instabililty_linalg():
+def test_likeness_to_sphere():
+    """ Using a, b, c as almost equal, compare how the close the ellipsoids 
+    match the dipole-sphere magnetic approximation """
     
-    n_cross = _construct_n_matrix_internal(50, 49.99, 49.98)
-    h_cross = np.linalg.inv(np.identity(3) + n_cross @ k_rot) @ h0_rot
+    # create field
+    k = [100, 10, 1, 0.1, 0.001]
+    b0 = np.array(hm.magnetic_angles_to_vec(55_000, 0.0, 90.0))  
+    H0_Am = np.array(b0 * 1e-9 / mu_0)
+    M = [k * H0_Am for k in k]
     
+    # create coords
+    easting = np.linspace(0, 2 * 60, 50)
+    northing, upward = np.zeros_like(easting), np.zeros_like(easting)
+    coordinates = tuple(np.atleast_2d(c) for c in (easting, northing, upward))
+    
+    # create ellipsoids
+    pro_ellipsoid = ProlateEllipsoid(a=60, b=59.99, yaw=0, pitch=0, centre=(0, 0, 0))
+    tri_ellipsoid = TriaxialEllipsoid(a=60, b=59.999, c=59.998, yaw = 0, pitch=0, roll=0, centre=(0, 0, 0))
+    obl_ellipsoid = OblateEllipsoid(a=59.99, b=60, yaw = 0, pitch=0, centre=(0, 0, 0))
+
+    for indx, k in enumerate(k):
+        
+        # ellipsoids
+        be_pro, _, _ = ellipsoid_magnetics(coordinates, pro_ellipsoid, k, (55_000, 0.0, 90.0), field="b")
+        be_pro = be_pro.ravel()
+        be_tri,  _, _ = ellipsoid_magnetics(coordinates, tri_ellipsoid, k, (55_000, 0.0, 90.0), field="b")
+        be_tri = be_tri.ravel()
+        be_obl,  _, _ = ellipsoid_magnetics(coordinates, obl_ellipsoid, k, (55_000, 0.0, 90.0), field="b")
+        be_obl = be_obl.ravel()
+        
+        # sphere
+        b_e, b_n, b_u = _sphere_magnetic(coordinates, radius=60, center=(0, 0, 0), magnetization= M[indx])
+        b_e = b_e.ravel()
+        
+        # test similarity 
+        np.testing.assert_allclose(be_pro, b_e, rtol=1e-2)
+
+        np.testing.assert_allclose(be_tri, b_e, rtol=1e-2)
+
+        np.testing.assert_allclose(be_obl, b_e, rtol=1e-2)
+
 
 def test_euler_returns():
     """ Check the euler returns are exact"""
