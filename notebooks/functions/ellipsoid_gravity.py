@@ -2,12 +2,14 @@
 Forward modelling of a gravity anomaly produced due to an ellipsoidal body.
 """
 
+from collections.abc import Iterable
+
 import numpy as np
 from scipy.constants import gravitational_constant as g
 from scipy.special import ellipeinc, ellipkinc
 
 from .utils_ellipsoids import _calculate_lambda, _get_v_as_euler
-from collections.abc import Iterable
+
 
 def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     """
@@ -99,12 +101,12 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
     # deal with the case of a single ellipsoid being passed
     if not isinstance(ellipsoids, Iterable):
         ellipsoids = [ellipsoids]
-        
+
     if not isinstance(density, Iterable):
         density = [density]
 
     # for ellipsoid, density in zip (ellipsoids, density, strict=True):
-    for ellipsoid, density in zip (ellipsoids, density, strict=True):
+    for ellipsoid, density in zip(ellipsoids, density, strict=True):
         # unpack instances
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
@@ -112,7 +114,9 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
 
         # preserve ellipsoid shape, translate origin of ellipsoid
         cast = np.broadcast(e, n, u)
-        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
+        obs_points = np.vstack(
+            ((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel())
+        )
 
         # create rotation matrix
         r = _get_v_as_euler(yaw, pitch, roll)
@@ -125,7 +129,9 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # calculate gravity component for the rotated points
-        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
+        gx, gy, gz = _get_gravity_array(
+            internal_mask, a, b, c, x, y, z, density
+        )
         gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
 
         # project onto upward unit vector, axis U
@@ -144,43 +150,43 @@ def _get_abc(a, b, c, lmbda):
     """
     Compute the A(λ), B(λ), and C(λ) functions using elliptic integrals, as
     required for potiential field calculations of ellipsoidal bodies.
-     
+
     Parameters
     ----------
     x, y, z : array_like or float
         Cartesian observation coordinates. Each can be a scalar, 1D array, or
         2D array, depending on the evaluation grid.
-     
+
     a, b, c : float
         Semiaxis lengths of the ellipsoid (a ≥ b ≥ c). These must conform to
         the type of ellipsoid used (e.g., triaxial, prolate, oblate).
-     
+
     lmbda : array_like or float
         The λ (lambda) parameter(s) associated with the confocal ellipsoidal
         coordinate surfaces. Can be a scalar or an array matching the shape of
         the observation points.
-     
+
     Returns
     -------
     A_lmbda : ndarray
         A(λ) function values at each observation point.
-     
+
     B_lmbda : ndarray
         B(λ) function values at each observation point.
-     
+
     C_lmbda : ndarray
         C(λ) function values at each observation point.
     """
-     
+
     # compute the k and theta terms for the elliptic integrals
     k = (a**2 - b**2) / (a**2 - c**2)
     theta_prime = np.arcsin(np.sqrt((a**2 - c**2) / (a**2 + lmbda)))
-     
+
     # compute terms associated with A(lambda)
     a_coeff = 2 / ((a**2 - b**2) * np.sqrt(a**2 - c**2))
     a_elliptic_integral = ellipkinc(theta_prime, k) - ellipeinc(theta_prime, k)
     a_lmbda = a_coeff * a_elliptic_integral
-     
+
     # compute terms associated with B(lambda)
     b_coeff = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
     b_fk_coeff = (b**2 - c**2) / (a**2 - c**2)
@@ -192,7 +198,7 @@ def _get_abc(a, b, c, lmbda):
         - b_fk_coeff * ellipkinc(theta_prime, k)
         - b_fk_subtracted_term
     )
-     
+
     # compute terms associated with C(lambda)
     c_coeff = 2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
     c_ek_subtracted_term = (
@@ -201,9 +207,8 @@ def _get_abc(a, b, c, lmbda):
         theta_prime
     )  # check the brackets here ??
     c_lmbda = c_coeff * (c_ek_subtracted_term - ellipeinc(theta_prime, k))
-     
-    return a_lmbda, b_lmbda, c_lmbda
 
+    return a_lmbda, b_lmbda, c_lmbda
 
 
 def _get_internal_g(x, y, z, a, b, c, density):
@@ -389,14 +394,17 @@ def _get_gravity_prolate(x, y, z, a, b, c, density, lmbda=None):
 
     # compute repeated log_e term
     log_term = np.log(
-        ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5) / ((b**2 + lmbda) ** 0.5)
+        ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5)
+        / ((b**2 + lmbda) ** 0.5)
     )
 
     # compute repeated f_2 second term
     f_2_term_2 = (((a**2 - b**2) * (a**2 + lmbda)) ** 0.5) / (b**2 + lmbda)
 
     # compile terms
-    dg1 = 4 * co_eff1 * x * (((a**2 - b**2) / (a**2 + lmbda)) ** 0.5 - log_term)
+    dg1 = (
+        4 * co_eff1 * x * (((a**2 - b**2) / (a**2 + lmbda)) ** 0.5 - log_term)
+    )
     dg2 = 2 * co_eff1 * y * (log_term - f_2_term_2)
     dg3 = 2 * co_eff1 * z * (log_term - f_2_term_2)
 
@@ -521,7 +529,13 @@ def _get_gravity_array(internal_mask, a, b, c, x, y, z, density):
 
     # call functions to produce g values, external and internal
     g_ext_x, g_ext_y, g_ext_z = func(
-        x[~internal_mask], y[~internal_mask], z[~internal_mask], a, b, c, density
+        x[~internal_mask],
+        y[~internal_mask],
+        z[~internal_mask],
+        a,
+        b,
+        c,
+        density,
     )
     g_int_x, g_int_y, g_int_z = _get_internal_g(
         x[internal_mask], y[internal_mask], z[internal_mask], a, b, c, density
