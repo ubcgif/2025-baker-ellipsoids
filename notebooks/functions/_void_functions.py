@@ -1,16 +1,18 @@
-from .utils import _global_to_local
-
-import verde as vd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import verde as vd
 from matplotlib import cm
+
+from .utils import _global_to_local
 
 ##############################################################################
 
 # following functions are not necessary - tested implementations of the paper
 
 
-def structural_angles_to_abg(strike, dip, rake):  # we can decide if this is needed
+def structural_angles_to_abg(
+    strike, dip, rake
+):  # we can decide if this is needed
     """
     Takes structural (geological) angles of strike, dip, rake and converts them
     into alpha, beta, gamma angles.
@@ -63,11 +65,14 @@ def get_body_rotation_sdr(strike, dip, rake):
 
     if not (0 <= strike <= 360):
         raise ValueError(
-            "Invalid value for strike." f"Expected 0<=strike<=360, got {strike}."
+            "Invalid value for strike."
+            f"Expected 0<=strike<=360, got {strike}."
         )
 
     if not (0 <= dip <= 90):
-        raise ValueError("Invalid value for dip." f"Expected 0<=dip<=90, got {dip}.")
+        raise ValueError(
+            "Invalid value for dip." f"Expected 0<=dip<=90, got {dip}."
+        )
 
     if not (0 <= rake <= 180):
         raise ValueError(
@@ -84,19 +89,27 @@ def get_body_rotation_sdr(strike, dip, rake):
     rake = np.radians(rake)
 
     v1 = [l1, m1, n1] = (
-        -np.cos(strike) * np.cos(rake) - np.sin(strike) * np.cos(dip) * np.sin(rake),
-        -np.sin(strike) * np.cos(rake) + np.cos(strike) * np.cos(dip) * np.sin(rake),
+        -np.cos(strike) * np.cos(rake)
+        - np.sin(strike) * np.cos(dip) * np.sin(rake),
+        -np.sin(strike) * np.cos(rake)
+        + np.cos(strike) * np.cos(dip) * np.sin(rake),
         -np.sin(dip) * np.sin(rake),
     )
     v2 = [l2, m2, n2] = sign * np.array(
         (
-            np.cos(strike) * np.sin(rake) - np.sin(strike) * np.cos(dip) * np.cos(rake),
-            np.sin(strike) * np.sin(rake) + np.cos(strike) * np.cos(dip) * np.cos(rake),
+            np.cos(strike) * np.sin(rake)
+            - np.sin(strike) * np.cos(dip) * np.cos(rake),
+            np.sin(strike) * np.sin(rake)
+            + np.cos(strike) * np.cos(dip) * np.cos(rake),
             -np.sin(dip) * np.cos(rake),
         )
     )
     v3 = [l3, m3, n3] = sign * np.array(
-        (np.sin(strike) * np.sin(dip), -np.cos(strike) * np.sin(dip), -np.sin(dip))
+        (
+            np.sin(strike) * np.sin(dip),
+            -np.cos(strike) * np.sin(dip),
+            -np.sin(dip),
+        )
     )
 
     V = [v1, v2, v3]
@@ -139,7 +152,9 @@ def get_body_rotation_abg(alpha, beta, gamma):  # in degrees
         )
 
     if not (0 <= beta <= 90):
-        raise ValueError("Invalid value for beta." f"Expected 0<=beta<=90, got {beta}.")
+        raise ValueError(
+            "Invalid value for beta." f"Expected 0<=beta<=90, got {beta}."
+        )
 
     if not (-90 <= gamma <= 90):
         raise ValueError(
@@ -158,14 +173,18 @@ def get_body_rotation_abg(alpha, beta, gamma):  # in degrees
     )
 
     v2 = [l2, m2, n2] = (
-        np.cos(alpha) * np.cos(gamma) * np.sin(beta) + np.sin(alpha) * np.sin(gamma),
-        np.sin(alpha) * np.cos(gamma) * np.sin(beta) - np.cos(alpha) * np.sin(gamma),
+        np.cos(alpha) * np.cos(gamma) * np.sin(beta)
+        + np.sin(alpha) * np.sin(gamma),
+        np.sin(alpha) * np.cos(gamma) * np.sin(beta)
+        - np.cos(alpha) * np.sin(gamma),
         -np.cos(gamma) * np.cos(beta),
     )
 
     v3 = [l3, m3, n3] = (
-        np.sin(alpha) * np.cos(gamma) - np.cos(alpha) * np.sin(gamma) * np.sin(beta),
-        -np.cos(alpha) * np.cos(gamma) - np.sin(alpha) * np.sin(beta) * np.sin(gamma),
+        np.sin(alpha) * np.cos(gamma)
+        - np.cos(alpha) * np.sin(gamma) * np.sin(beta),
+        -np.cos(alpha) * np.cos(gamma)
+        - np.sin(alpha) * np.sin(beta) * np.sin(gamma),
         np.sin(gamma) * np.cos(beta),
     )
 
@@ -207,7 +226,9 @@ def plot_axis_rotation(northing, easting, extra_coords, depth, V):
     # plot both original surface and rotated plane
     fig, ax = plt.subplots(subplot_kw=dict(projection="3d"))
     ax.plot_surface(northing, easting, extra_coords, cmap=cm.jet)
-    ax.plot_surface(local_coords[0], local_coords[1], local_coords[2], cmap=cm.jet)
+    ax.plot_surface(
+        local_coords[0], local_coords[1], local_coords[2], cmap=cm.jet
+    )
 
     return
 
@@ -263,7 +284,9 @@ def _get_coords_and_mask(region, spacing, extra_coords, a, b, c, topo_h=None):
 
     else:
         e, n = vd.grid_coordinates(region=region, spacing=spacing)
-        u = topo_h * np.exp(-(e**2) / (np.max(e) ** 2) - n**2 / (np.max(n) ** 2))
+        u = topo_h * np.exp(
+            -(e**2) / (np.max(e) ** 2) - n**2 / (np.max(n) ** 2)
+        )
 
     internal = (e**2) / (a**2) + (n**2) / (b**2) + (u**2) / (c**2) < 1
 
