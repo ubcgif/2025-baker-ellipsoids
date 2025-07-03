@@ -56,6 +56,10 @@ to activate the environment with:
 conda activate 2025-baker-ellipsoids
 ```
 
+### Where to start
+
+All example plots and function are within the notebooks folder. \notebooks shows the jupyter notebook examples for how to use and apply the code. \notebooks\functions contains .py files of all functions and tests which build the code.
+
 ## License
 
 All code is provided under the [MIT License](LICENSE).
