@@ -10,13 +10,14 @@ import numpy as np
 from scipy.constants import mu_0
 from scipy.special import ellipeinc, ellipkinc
 
-from .ellipsoid_gravity import _get_abc
+
 from .utils_ellipsoids import _calculate_lambda, _get_v_as_euler
 
 
 # internal field N matrix functions
 def ellipsoid_magnetics(
-    coordinates, ellipsoids, susceptibility, external_field, field="b"
+    coordinates, ellipsoids, susceptibility, external_field, 
+    remanent_mag=None, field="b"
 ):
     """
     Produces the components for the magnetic field components (be, bn, bu):
@@ -67,6 +68,9 @@ def ellipsoid_magnetics(
     external_field : ndarray
         The uniform magnetic field as and array with values of
         (magnitude, inclination, declination).
+    
+    remanent_mag:  (optional) array
+        Remanent magnetisation vector of the body. Default is None.
 
     field : (optional) str, one of either "e", "n", "u".
         if no input is given, the function will return all three components of
@@ -90,7 +94,7 @@ def ellipsoid_magnetics(
     ellipsoid"
     Takenhasi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
 
-    For derivations of the equations, and methods used in this code.
+    For derivations of the equations and methods used in this code.
     """
 
     # check inputs are of the correct type
@@ -99,6 +103,16 @@ def ellipsoid_magnetics(
 
     if not isinstance(susceptibility, Iterable):
         susceptibility = [susceptibility]
+    
+    if remanent_mag is not None:
+        mr = np.asarray(remanent_mag, dtype=float)
+
+        if mr.ndim == 1 and mr.size == 3:                 
+            mr = np.tile(mr, (len(ellipsoids), 1))       
+    
+        if mr.shape != (len(ellipsoids), 3):             
+            raise ValueError(f"Remanent magnetisation must have shape "
+                             f"({len(ellipsoids)}, 3); got {mr.shape}.")
 
     if not isinstance(external_field, Iterable) and len(external_field) != 3:
         raise ValueError(
@@ -124,8 +138,8 @@ def ellipsoid_magnetics(
     h0 = b0 * 1e-9 / mu_0
 
     # loop over each given ellipsoid
-    for ellipsoid, susceptibility in zip(
-        ellipsoids, susceptibility, strict=True
+    for ellipsoid, susceptibility, m_r in zip(
+        ellipsoids, susceptibility, mr, strict=True
     ):
 
         k_matrix = check_susceptibility(susceptibility)
@@ -148,7 +162,12 @@ def ellipsoid_magnetics(
         ) < 1
 
         h0_rot = r.T @ h0
-        m = _get_magnetisation(a, b, c, k_matrix, h0_rot)
+
+        if remanent_mag is None:
+            m = _get_magnetisation(a, b, c, k_matrix, h0_rot, r)
+        else:
+            m = _get_magnetisation_with_rem(a, b, c, k_matrix, h0, m_r, r)
+
         n_cross = _construct_n_matrix_internal(a, b, c)
 
         # create N matricies for each given point
@@ -186,7 +205,7 @@ def ellipsoid_magnetics(
     return {"e": be, "n": bn, "u": bu}.get(field, (be, bn, bu))
 
 
-def _get_magnetisation(a, b, c, k, h0):
+def _get_magnetisation(a, b, c, k, h0, r):
     """
     Get the magnetization vector from the ellipsoid parameters and the rotated
     external field.
@@ -211,8 +230,40 @@ def _get_magnetisation(a, b, c, k, h0):
 
     n_cross = _construct_n_matrix_internal(a, b, c)
     inv = np.linalg.inv(np.identity(3) - (n_cross @ k))
-    m = k @ inv @ h0
+    m_local = k @ inv @ h0
+    m = r @ m_local
 
+    return m
+
+def _get_magnetisation_with_rem(a, b, c, k, h0, mr, r):
+    """
+    Get the magnetization vector from the ellipsoid parameters and the rotated
+    external field.
+
+    parameters
+    ----------
+    a, b, c : floats
+        Semiaxis lengths of the ellipsoid.
+
+    k: float, matrix
+        Susceptabiity value/s (float for isotropic or matrix for anisotropic)
+
+    h0: array
+        the rotated background field (local coordinates).
+    
+    mr: array
+        remanent magnetisation vector. 
+
+    returns
+    -------
+    m (magentisation): array
+        the magnetisation vector for the define body.
+
+    """
+    n_cross = _construct_n_matrix_internal(a, b, c)
+    inv = np.linalg.inv(np.identity(3) - (k @ n_cross))
+    u = r @ inv
+    m = u @ (k @ h0 + mr)
     return m
 
 
