@@ -88,7 +88,7 @@ def ellipsoid_magnetics(
     ----------
     Clark, S. A., et al. (1986), "Magnetic and gravity anomalies of a trixial
     ellipsoid"
-    Takenhasi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
+    Takahashi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
 
     For derivations of the equations, and methods used in this code.
     """
