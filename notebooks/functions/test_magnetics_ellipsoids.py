@@ -385,10 +385,14 @@ class TestDemagnetizationEffects:
         a, b, c = ellipsoid_semiaxes
         susceptibility = 0.5
         susceptibility_tensor = susceptibility * np.identity(3)
+
+        # Compute magnetization considering demagnetization effect
         magnetization = _get_magnetisation(a, b, c, susceptibility_tensor, h0_field)
+
+        # Compute magnetization without considering demagnetization effect
         magnetization_no_demag = susceptibility * h0_field
 
-        # Check
+        # Check that the former is smaller than the latter
         assert (magnetization**2).sum() < (magnetization_no_demag**2).sum()
 
 
