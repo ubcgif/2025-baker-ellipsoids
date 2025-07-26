@@ -254,3 +254,32 @@ def _sphere_magnetic(coordinates, radius, center, magnetization):
 
     be, bn, bu = tuple(b.reshape(cast.shape) for b in (be, bn, bu))
     return be, bn, bu
+
+
+def _get_sphere_magnetization(susceptibility, external_field):
+    """
+    Compute sphere's induced magnetization.
+
+    Parameters
+    ----------
+    susceptibility : float or (3, 3) array
+        Magnetic susceptibility of the sphere as a scalar or a tensor.
+    external_field : tuple
+        The uniform magnetic field B as a tuple with values of
+        (magnitude, inclination, declination). The magnitude should be in nT.
+
+    Returns
+    -------
+    magnetization : tuple
+        Tuple with components of the magnetization vector in A/m.
+    """
+    # Get external field components
+    b0_field = np.array(hm.magnetic_angles_to_vec(*external_field))
+    h0_field = b0_field / mu_0 * 1e-9  # convert to T
+
+    # Compute magnetization of the sphere accounting for demagnetization effect.
+    if not isinstance(susceptibility, np.ndarray):
+        susceptibility = susceptibility * np.identity(3)
+    inv = np.linalg.inv(np.identity(3) + 1 / 3 * susceptibility)
+    magnetization = susceptibility @ inv @ h0_field
+    return magnetization
