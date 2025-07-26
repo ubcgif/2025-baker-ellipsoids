@@ -65,8 +65,9 @@ def ellipsoid_magnetics(
         anisotropic susceptibility.
 
     external_field : ndarray
-        The uniform magnetic field as and array with values of
-        (magnitude, inclination, declination).
+        The uniform magnetic field (B) as and array with values of
+        (magnitude, inclination, declination). The magnitude should be in nT, and the
+        angles in degrees.
 
     field : (optional) str, one of either "e", "n", "u".
         if no input is given, the function will return all three components of

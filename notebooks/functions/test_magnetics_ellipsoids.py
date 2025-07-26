@@ -16,7 +16,11 @@ from .ellipsoid_magnetics import (
     _get_magnetisation,
     ellipsoid_magnetics,
 )
-from .utils_ellipsoids import _get_v_as_euler, _sphere_magnetic
+from .utils_ellipsoids import (
+    _get_v_as_euler,
+    _sphere_magnetic,
+    _get_sphere_magnetization,
+)
 
 
 def test_likeness_to_sphere():
@@ -425,3 +429,63 @@ def test_internal_demagnetization_components(ellipsoid_type, a, b, c):
 
     # check that all diagonal elements are positive
     assert all(n > 0 for n in n_components)
+
+
+class TestMagnetizationVersusSphere:
+    """
+    Test if ellipsoid's magnetization approximates the one of the sphere.
+    """
+
+    @pytest.fixture
+    def radius(self):
+        """
+        Sphere radius.
+        """
+        return 50.0
+
+    @pytest.fixture(params=("oblate", "prolate", "triaxial"))
+    def ellipsoid_semiaxes(self, radius, request):
+        """
+        Ellipsoid's semiaxes that approximate a sphere.
+        """
+        a = radius
+        ellipsoid_type = request.param
+        match ellipsoid_type:
+            case "oblate":
+                b = c = a + 1e-2
+            case "prolate":
+                b = c = a - 1e-2
+            case "triaxial":
+                b = a - 1e-3
+                c = a - 1e-2
+            case _:
+                raise ValueError()
+        return a, b, c
+
+    def test_magnetization_vs_sphere(self, ellipsoid_semiaxes):
+        """
+        Test if ellipsoid's magnetization approximates the one of the sphere.
+        """
+        # Define moderately high susceptibility to account for demagnetization effects
+        susceptibility = 0.5
+
+        # Define arbitrary external field
+        intensity, inclination, declination = 55_321, 70.2, -12.3
+        b0_field = np.array(
+            hm.magnetic_angles_to_vec(intensity, inclination, declination)
+        )
+        h0_field = b0_field / mu_0 * 1e-9  # convert to T
+
+        # Compute magnetizations
+        a, b, c = ellipsoid_semiaxes
+        k_matrix = susceptibility * np.identity(3)
+        magnetization_ellipsoid = _get_magnetisation(a, b, c, k_matrix, h0_field)
+        magnetization_sphere = _get_sphere_magnetization(
+            susceptibility, (intensity, inclination, declination)
+        )
+
+        # Compare magnetization of the sphere vs magnetization of the ellipsoid
+        rtol = 1e-4
+        np.testing.assert_allclose(
+            magnetization_ellipsoid, magnetization_sphere, rtol=rtol
+        )
