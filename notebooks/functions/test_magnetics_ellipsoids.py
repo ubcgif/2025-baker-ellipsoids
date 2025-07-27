@@ -1,3 +1,4 @@
+import pytest
 import harmonica as hm
 import numpy as np
 import verde as vd
@@ -12,9 +13,14 @@ from .ellipsoid_magnetics import (
     _depol_oblate_int,
     _depol_prolate_int,
     _depol_triaxial_int,
+    _get_magnetisation,
     ellipsoid_magnetics,
 )
-from .utils_ellipsoids import _get_v_as_euler, _sphere_magnetic
+from .utils_ellipsoids import (
+    _get_v_as_euler,
+    _sphere_magnetic,
+    _get_sphere_magnetization,
+)
 
 
 def test_likeness_to_sphere():
@@ -348,3 +354,138 @@ def test_internal_depol_equals_1():
 
     tnxx, tnyy, tnzz = _depol_triaxial_int(5, 4, 3)
     np.testing.assert_allclose((tnxx + tnyy + tnzz), 1)
+
+
+class TestDemagnetizationEffects:
+    """
+    Test the ``_get_magnetisation`` function.
+    """
+
+    @pytest.fixture(params=("oblate", "prolate", "triaxial"))
+    def ellipsoid_semiaxes(self, request):
+        ellipsoid_type = request.param
+        match ellipsoid_type:
+            case "oblate":
+                a, b = 50.0, 60.0
+                c = b
+            case "prolate":
+                a, b = 60.0, 50.0
+                c = b
+            case "triaxial":
+                a, b, c = 70.0, 60.0, 50.0
+            case _:
+                raise ValueError()
+        return a, b, c
+
+    def test_demagnetization(self, ellipsoid_semiaxes):
+        """
+        Test if demagnetization effects are appreciable.
+
+        The magnetization accounting with demagnetization should have a smaller
+        magnitude than the magnetization without considering it.
+        """
+        h0_field = np.array([55_000.0, 10_000.0, -2_000.0])
+
+        a, b, c = ellipsoid_semiaxes
+        susceptibility = 0.5
+        susceptibility_tensor = susceptibility * np.identity(3)
+
+        # Compute magnetization considering demagnetization effect
+        magnetization = _get_magnetisation(a, b, c, susceptibility_tensor, h0_field)
+
+        # Compute magnetization without considering demagnetization effect
+        magnetization_no_demag = susceptibility * h0_field
+
+        # Check that the former is smaller than the latter
+        assert (magnetization**2).sum() < (magnetization_no_demag**2).sum()
+
+
+@pytest.mark.parametrize(
+    ("ellipsoid_type", "a", "b", "c"),
+    [
+        ("oblate", 50.0, 60.0, 60.0),
+        ("prolate", 60.0, 50.0, 50.0),
+        ("triaxial", 70.0, 60.0, 50.0),
+    ],
+)
+def test_internal_demagnetization_components(ellipsoid_type, a, b, c):
+    r"""
+    Test if demagnetization tensors inside the ellipsoids have all positive values.
+
+    This guarantees that the code implements the appropriate sign convention for the
+    demagnetization tensor :math:`\mathbf{N}`, defined as:
+
+    .. math::
+
+        \mathbf{H}(\mathbf{r}) = \mathbf{H}_0 - \mathbf{N}(\mathbf{r}) \mathbf{M}
+    """
+    functions = {
+        "oblate": _depol_oblate_int,
+        "prolate": _depol_prolate_int,
+        "triaxial": _depol_triaxial_int,
+    }
+    func = functions[ellipsoid_type]
+    n_components = func(a, b, c)
+
+    # check that all diagonal elements are positive
+    assert all(n > 0 for n in n_components)
+
+
+class TestMagnetizationVersusSphere:
+    """
+    Test if ellipsoid's magnetization approximates the one of the sphere.
+    """
+
+    @pytest.fixture
+    def radius(self):
+        """
+        Sphere radius.
+        """
+        return 50.0
+
+    @pytest.fixture(params=("oblate", "prolate", "triaxial"))
+    def ellipsoid_semiaxes(self, radius, request):
+        """
+        Ellipsoid's semiaxes that approximate a sphere.
+        """
+        a = radius
+        ellipsoid_type = request.param
+        match ellipsoid_type:
+            case "oblate":
+                b = c = a + 1e-2
+            case "prolate":
+                b = c = a - 1e-2
+            case "triaxial":
+                b = a - 1e-3
+                c = a - 1e-2
+            case _:
+                raise ValueError()
+        return a, b, c
+
+    def test_magnetization_vs_sphere(self, ellipsoid_semiaxes):
+        """
+        Test if ellipsoid's magnetization approximates the one of the sphere.
+        """
+        # Define moderately high susceptibility to account for demagnetization effects
+        susceptibility = 0.5
+
+        # Define arbitrary external field
+        intensity, inclination, declination = 55_321, 70.2, -12.3
+        b0_field = np.array(
+            hm.magnetic_angles_to_vec(intensity, inclination, declination)
+        )
+        h0_field = b0_field / mu_0 * 1e-9  # convert to T
+
+        # Compute magnetizations
+        a, b, c = ellipsoid_semiaxes
+        k_matrix = susceptibility * np.identity(3)
+        magnetization_ellipsoid = _get_magnetisation(a, b, c, k_matrix, h0_field)
+        magnetization_sphere = _get_sphere_magnetization(
+            susceptibility, (intensity, inclination, declination)
+        )
+
+        # Compare magnetization of the sphere vs magnetization of the ellipsoid
+        rtol = 1e-4
+        np.testing.assert_allclose(
+            magnetization_ellipsoid, magnetization_sphere, rtol=rtol
+        )

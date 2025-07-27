@@ -65,8 +65,9 @@ def ellipsoid_magnetics(
         anisotropic susceptibility.
 
     external_field : ndarray
-        The uniform magnetic field as and array with values of
-        (magnitude, inclination, declination).
+        The uniform magnetic field (B) as and array with values of
+        (magnitude, inclination, declination). The magnitude should be in nT, and the
+        angles in degrees.
 
     field : (optional) str, one of either "e", "n", "u".
         if no input is given, the function will return all three components of
@@ -187,32 +188,45 @@ def ellipsoid_magnetics(
 
 
 def _get_magnetisation(a, b, c, k, h0):
-    """
+    r"""
     Get the magnetization vector from the ellipsoid parameters and the rotated
     external field.
 
-    parameters
+    Parameters
     ----------
     a, b, c : floats
-        Semiaxis lengths of the ellipsoid.
-
-    k: float, matrix
-        Susceptabiity value/s (float for isotropic or matrix for anisotropic)
-
+        Semi-axes lengths of the ellipsoid.
+    k : (3, 3) array
+        Susceptibility tensor.
     h0: array
-        the rotated background field (local coordinates).
+        The rotated background field (in local coordinates).
 
-    returns
+    Returns
     -------
     m (magentisation): array
-        the magnetisation vector for the define body.
+        The magnetisation vector for the defined body.
 
+    Notes
+    -----
+    Considering an ellipsoid with susceptibility :math:`\chi` (scalar or tensor) in
+    a uniform background field :math:`\mathbf{H}_0`, compute the magnetization vector
+    :math:`\mathbf{M}` of the ellipsoid accounting for demagnetization effects as:
+
+    .. math::
+
+        \mathbf{M} =
+        \chi \[left \mathbf{I} + \mathbf{N}^\text{int} \chi \right]^{-1} \mathbf{H}_0,
+
+    where :math:`\mathbf{N}^\text{int}` is the internal demagnetization tensor, defined
+    as:
+
+    .. math::
+
+        \mathbf{H}(\mathbf{r}) = \mathbf{H}_0 - \mathbf{N}(\mathbf{r}) \mathbf{M}.
     """
-
     n_cross = _construct_n_matrix_internal(a, b, c)
-    inv = np.linalg.inv(np.identity(3) - (n_cross @ k))
+    inv = np.linalg.inv(np.identity(3) + (n_cross @ k))
     m = k @ inv @ h0
-
     return m
 
 
