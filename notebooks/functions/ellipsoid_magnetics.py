@@ -520,7 +520,9 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         g2 = g2_multiplier * (g2_elliptics - g2_last_term)
 
-        g3_term_1 = (
+        # Term with the E(k, theta) must have a minus sign 
+        # (the minus sign is missing in Takahashi (2018)).
+        g3_term_1 = -(
             2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
         ) * ellipeinc(phi, k)
         g3_term_2 = (2 / (b**2 - c**2)) * np.sqrt(
