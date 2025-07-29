@@ -41,18 +41,13 @@ def test_likeness_to_sphere():
     coordinates = tuple(np.atleast_2d(c) for c in (easting, northing, upward))
 
     # create ellipsoids
-    pro_ellipsoid = ProlateEllipsoid(
-        a=60, b=59.99, yaw=0, pitch=0, centre=(0, 0, 0)
-    )
+    pro_ellipsoid = ProlateEllipsoid(a=60, b=59.99, yaw=0, pitch=0, centre=(0, 0, 0))
     tri_ellipsoid = TriaxialEllipsoid(
         a=60, b=59.999, c=59.998, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
     )
-    obl_ellipsoid = OblateEllipsoid(
-        a=59.99, b=60, yaw=0, pitch=0, centre=(0, 0, 0)
-    )
+    obl_ellipsoid = OblateEllipsoid(a=59.99, b=60, yaw=0, pitch=0, centre=(0, 0, 0))
 
     for indx, k in enumerate(k):
-
         # ellipsoids
         be_pro, _, _ = ellipsoid_magnetics(
             coordinates, pro_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
@@ -263,7 +258,9 @@ def test_mag_flipped_ellipsoid():
     )
 
     # ignore internal field as this won't be 'flipped' in the same natr
-    internal_mask = ((x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)) < 1
+    internal_mask = (
+        (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)
+    ) < 1
     coordinates = tuple(c[internal_mask] for c in (x, y, z))
 
     be1, bn1, bu1 = ellipsoid_magnetics(
@@ -298,7 +295,9 @@ def test_euler_rotation_symmetry_mag():
     coordinates = x, y, z = vd.grid_coordinates(
         region=(-5, 5, -5, 5), spacing=1.0, extra_coords=5
     )
-    internal_mask = ((x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)) < 1
+    internal_mask = (
+        (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)
+    ) < 1
     coordinates = tuple(c[internal_mask] for c in (x, y, z))
 
     def check_rotation_equivalence(base_ellipsoid, rotated_ellipsoids):
@@ -314,15 +313,11 @@ def test_euler_rotation_symmetry_mag():
             np.testing.assert_allclose(np.abs(bu), np.abs(base_bu), rtol=1e-4)
 
     # triaxial cases
-    base_tri = TriaxialEllipsoid(
-        a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
-    )
+    base_tri = TriaxialEllipsoid(a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0))
     tri_rotated = [
         TriaxialEllipsoid(a, b, c, yaw=360, pitch=0, roll=0, centre=(0, 0, 0)),
         TriaxialEllipsoid(a, b, c, yaw=0, pitch=180, roll=0, centre=(0, 0, 0)),
-        TriaxialEllipsoid(
-            a, b, c, yaw=0, pitch=360, roll=360, centre=(0, 0, 0)
-        ),
+        TriaxialEllipsoid(a, b, c, yaw=0, pitch=360, roll=360, centre=(0, 0, 0)),
     ]
     check_rotation_equivalence(base_tri, tri_rotated)
 
@@ -489,3 +484,116 @@ class TestMagnetizationVersusSphere:
         np.testing.assert_allclose(
             magnetization_ellipsoid, magnetization_sphere, rtol=rtol
         )
+
+
+class TestMagneticFieldVersusSphere:
+    """
+    Test if magnetic field of ellipsoid approximates the one of the sphere.
+    """
+
+    # Sphere radius, center, and susceptibility.
+    radius = 50.0
+    center = (0, 0, 0)
+    susceptibility = 0.5
+
+    # Difference between ellipsoid's semiaxes.
+    # It should be small compared to the sphere radius, so the ellipsoid approximates
+    # a sphere.
+    delta = 0.001
+
+    # Define external field
+    external_field = (55_123.0, 32.0, -28.9)
+
+    @pytest.fixture(params=[0.0, 100.0], ids=["height=0", "height=100"])
+    def coordinates(self, request):
+        """Sample coordinates of observation points."""
+        region = (-200, 200, -200, 200)
+        shape = (151, 151)
+        height = request.param
+        coordinates = vd.grid_coordinates(region, shape=shape, extra_coords=height)
+        return coordinates
+
+    @pytest.fixture
+    def sphere_magnetic_field(self, coordinates):
+        """Magnetic field of sphere on observation points."""
+        magnetization = _get_sphere_magnetization(
+            self.susceptibility, self.external_field
+        )
+        b_sphere = _sphere_magnetic(
+            coordinates, self.radius, self.center, magnetization
+        )
+        return b_sphere
+
+    def get_ellipsoid(self, ellipsoid_type: str):
+        """
+        Return ellipsoid that approximates a sphere.
+
+        Parameters
+        ----------
+        ellipsoid_type : {"oblate", "prolate", "triaxial"}
+            Type of ellipsoid.
+
+        Returns
+        -------
+        OblateEllipsoid, ProlateEllipsoid or TriaxialEllipsoid
+        """
+        yaw, pitch, roll = 0, 0, 0
+        a = self.radius
+        match ellipsoid_type:
+            case "oblate":
+                ellipsoid = OblateEllipsoid(
+                    a=a,
+                    b=a + self.delta,
+                    yaw=yaw,
+                    pitch=pitch,
+                    centre=self.center,
+                )
+            case "prolate":
+                ellipsoid = ProlateEllipsoid(
+                    a=a,
+                    b=a - self.delta,
+                    yaw=yaw,
+                    pitch=pitch,
+                    centre=self.center,
+                )
+            case "triaxial":
+                ellipsoid = TriaxialEllipsoid(
+                    a=a,
+                    b=a - self.delta,
+                    c=a - 2 * self.delta,
+                    yaw=yaw,
+                    pitch=pitch,
+                    roll=roll,
+                    centre=self.center,
+                )
+            case _:
+                raise ValueError()
+        return ellipsoid
+
+    @pytest.mark.parametrize(
+        "ellipsoid_type",
+        [
+            "oblate",
+            "prolate",
+            pytest.param(
+                "triaxial", marks=pytest.mark.xfail(reason="bug", raises=AssertionError)
+            ),
+        ],
+    )
+    def test_magnetic_field_vs_sphere(
+        self, coordinates, sphere_magnetic_field, ellipsoid_type
+    ):
+        """
+        Test magnetic field of ellipsoids against the one for a sphere.
+        """
+        b_e_sphere, b_n_sphere, b_u_sphere = sphere_magnetic_field
+        ellipsoid = self.get_ellipsoid(ellipsoid_type)
+        b_e, b_n, b_u = ellipsoid_magnetics(
+            coordinates, ellipsoid, self.susceptibility, self.external_field, field="b"
+        )
+        maxabs = np.max([np.abs(b_e_sphere), np.abs(b_n_sphere), np.abs(b_u_sphere)])
+        atol = maxabs * 0.01
+        rtol = 1e-4
+        np.testing.assert_allclose(b_e_sphere, b_e, atol=atol, rtol=rtol)
+        np.testing.assert_allclose(b_n_sphere, b_n, atol=atol, rtol=rtol)
+        np.testing.assert_allclose(b_u_sphere, b_u, atol=atol, rtol=rtol)
