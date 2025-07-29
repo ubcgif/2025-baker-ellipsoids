@@ -489,3 +489,115 @@ class TestMagnetizationVersusSphere:
         np.testing.assert_allclose(
             magnetization_ellipsoid, magnetization_sphere, rtol=rtol
         )
+
+class TestMagneticFieldVersusSphere:
+    """
+    Test if magnetic field of ellipsoid approximates the one of the sphere.
+    """
+
+    # Sphere radius, center, and susceptibility.
+    radius = 50.0
+    center = (0, 0, 0)
+    susceptibility = 0.5
+
+    # Difference between ellipsoid's semiaxes.
+    # It should be small compared to the sphere radius, so the ellipsoid approximates
+    # a sphere.
+    delta = 0.001
+
+    # Define external field
+    external_field = (55_123.0, 32.0, -28.9)
+
+    @pytest.fixture(params=[0.0, 100.0], ids=["height=0", "height=100"])
+    def coordinates(self, request):
+        """Sample coordinates of observation points."""
+        region = (-200, 200, -200, 200)
+        shape = (151, 151)
+        height = request.param
+        coordinates = vd.grid_coordinates(region, shape=shape, extra_coords=height)
+        return coordinates
+
+    @pytest.fixture
+    def sphere_magnetic_field(self, coordinates):
+        """Magnetic field of sphere on observation points."""
+        magnetization = _get_sphere_magnetization(
+            self.susceptibility, self.external_field
+        )
+        b_sphere = _sphere_magnetic(
+            coordinates, self.radius, self.center, magnetization
+        )
+        return b_sphere
+
+    def get_ellipsoid(self, ellipsoid_type: str):
+        """
+        Return ellipsoid that approximates a sphere.
+
+        Parameters
+        ----------
+        ellipsoid_type : {"oblate", "prolate", "triaxial"}
+            Type of ellipsoid.
+
+        Returns
+        -------
+        OblateEllipsoid, ProlateEllipsoid or TriaxialEllipsoid
+        """
+        yaw, pitch, roll = 0, 0, 0
+        a = self.radius
+        match ellipsoid_type:
+            case "oblate":
+                ellipsoid = OblateEllipsoid(
+                    a=a,
+                    b=a + self.delta,
+                    yaw=yaw,
+                    pitch=pitch,
+                    centre=self.center,
+                )
+            case "prolate":
+                ellipsoid = ProlateEllipsoid(
+                    a=a,
+                    b=a - self.delta,
+                    yaw=yaw,
+                    pitch=pitch,
+                    centre=self.center,
+                )
+            case "triaxial":
+                ellipsoid = TriaxialEllipsoid(
+                    a=a,
+                    b=a - self.delta,
+                    c=a - 2 * self.delta,
+                    yaw=yaw,
+                    pitch=pitch,
+                    roll=roll,
+                    centre=self.center,
+                )
+            case _:
+                raise ValueError()
+        return ellipsoid
+
+    @pytest.mark.parametrize(
+        "ellipsoid_type",
+        [
+            "oblate",
+            "prolate",
+            pytest.param(
+                "triaxial", marks=pytest.mark.xfail(reason="bug", raises=AssertionError)
+            ),
+        ],
+    )
+    def test_magnetic_field_vs_sphere(
+        self, coordinates, sphere_magnetic_field, ellipsoid_type
+    ):
+        """
+        Test magnetic field of ellipsoids against the one for a sphere.
+        """
+        b_e_sphere, b_n_sphere, b_u_sphere = sphere_magnetic_field
+        ellipsoid = self.get_ellipsoid(ellipsoid_type)
+        b_e, b_n, b_u = ellipsoid_magnetics(
+            coordinates, ellipsoid, self.susceptibility, self.external_field, field="b"
+        )
+        maxabs = np.max([np.abs(b_e_sphere), np.abs(b_n_sphere), np.abs(b_u_sphere)])
+        atol = maxabs * 0.01
+        rtol = 1e-4
+        np.testing.assert_allclose(b_e_sphere, b_e, atol=atol, rtol=rtol)
+        np.testing.assert_allclose(b_n_sphere, b_n, atol=atol, rtol=rtol)
+        np.testing.assert_allclose(b_u_sphere, b_u, atol=atol, rtol=rtol)
