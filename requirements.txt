@@ -1,0 +1,8 @@
+numpy
+scipy
+harmonica
+choclo
+verde
+matplotlib
+numba
+pytest
