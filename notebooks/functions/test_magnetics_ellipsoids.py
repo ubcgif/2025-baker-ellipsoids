@@ -574,16 +574,7 @@ class TestMagneticFieldVersusSphere:
                 raise ValueError()
         return ellipsoid
 
-    @pytest.mark.parametrize(
-        "ellipsoid_type",
-        [
-            "oblate",
-            "prolate",
-            pytest.param(
-                "triaxial", marks=pytest.mark.xfail(reason="bug", raises=AssertionError)
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("ellipsoid_type", ["oblate", "prolate", "triaxial"])
     def test_magnetic_field_vs_sphere(
         self, coordinates, sphere_magnetic_field, ellipsoid_type
     ):
