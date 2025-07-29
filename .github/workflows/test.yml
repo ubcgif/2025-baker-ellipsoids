@@ -56,4 +56,4 @@ jobs:
         run: python -m pip freeze
 
       - name: Run the tests
-        run: pytest notebooks
+        run: pytest -v notebooks
