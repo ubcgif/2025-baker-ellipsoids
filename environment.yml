@@ -14,4 +14,6 @@ dependencies:
   - numpy
   - scipy
   - harmonica
+  - choclo
   - verde
+  - matplotlib
