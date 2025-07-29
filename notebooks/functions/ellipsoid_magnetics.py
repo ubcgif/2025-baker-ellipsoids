@@ -543,7 +543,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         # Equation (39): g2 = g3
         g2 = (1 / (e2 ** (3 / 2))) * (
-            (e2 * sqrt_l1) / (b**2 + lmbda)
+            (sqrt_e * sqrt_l1) / (b**2 + lmbda)
             - np.log((sqrt_e + sqrt_l1) / sqrt_l2)
         )
         gvals_x, gvals_y, gvals_z = g1, g2, g2
