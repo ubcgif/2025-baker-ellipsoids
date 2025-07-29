@@ -13,3 +13,5 @@ dependencies:
   # Scientific stack
   - numpy
   - scipy
+  - harmonica
+  - verde
