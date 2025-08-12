@@ -47,18 +47,18 @@ def test_likeness_to_sphere():
     )
     obl_ellipsoid = OblateEllipsoid(a=59.99, b=60, yaw=0, pitch=0, centre=(0, 0, 0))
 
-    for indx, k in enumerate(k):
+    for indx, k_i in enumerate(k):
         # ellipsoids
         be_pro, _, _ = ellipsoid_magnetics(
-            coordinates, pro_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
+            coordinates, pro_ellipsoid, k_i, (55_000, 0.0, 90.0), field="b"
         )
         be_pro = be_pro.ravel()
         be_tri, _, _ = ellipsoid_magnetics(
-            coordinates, tri_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
+            coordinates, tri_ellipsoid, k_i, (55_000, 0.0, 90.0), field="b"
         )
         be_tri = be_tri.ravel()
         be_obl, _, _ = ellipsoid_magnetics(
-            coordinates, obl_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
+            coordinates, obl_ellipsoid, k_i, (55_000, 0.0, 90.0), field="b"
         )
         be_obl = be_obl.ravel()
 
