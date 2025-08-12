@@ -33,6 +33,7 @@ ignore = [
   "RET504",   # allow variable assignment only for return
   "PT001",    # conventions for parenthesis on pytest.fixture
   "T20",      # allow print statements
+  "EM102",     # allow literal strings as arguments to errors
   # Notebook specific
   "B018"      # allow unused expression (prints on notebooks)
 ]
