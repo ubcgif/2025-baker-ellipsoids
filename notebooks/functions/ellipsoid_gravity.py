@@ -106,7 +106,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         density = [density]
 
     # for ellipsoid, density in zip (ellipsoids, density, strict=True):
-    for ellipsoid, density in zip(ellipsoids, density, strict=True):
+    for ellipsoid, density_i in zip(ellipsoids, density, strict=True):
         # unpack instances
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll

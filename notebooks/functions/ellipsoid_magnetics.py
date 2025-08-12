@@ -122,8 +122,8 @@ def ellipsoid_magnetics(
     h0 = b0 * 1e-9 / mu_0
 
     # loop over each given ellipsoid
-    for ellipsoid, susceptibility in zip(ellipsoids, susceptibility, strict=True):
-        k_matrix = check_susceptibility(susceptibility)
+    for ellipsoid, susceptibility_i in zip(ellipsoids, susceptibility, strict=True):
+        k_matrix = check_susceptibility(susceptibility_i)
 
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
         ox, oy, oz = ellipsoid.centre
