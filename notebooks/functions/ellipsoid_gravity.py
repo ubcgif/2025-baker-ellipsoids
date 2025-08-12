@@ -143,7 +143,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         gn += gn_i
         gu += gu_i
 
-        return {"e": ge, "n": gn, "u": gu}.get(field, (ge, gn, gu))
+    return {"e": ge, "n": gn, "u": gu}.get(field, (ge, gn, gu))
 
 
 def _get_abc(a, b, c, lmbda):
