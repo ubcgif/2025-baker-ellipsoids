@@ -127,7 +127,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # calculate gravity component for the rotated points
-        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
+        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density_i)
         gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
 
         # project onto upward unit vector, axis U
