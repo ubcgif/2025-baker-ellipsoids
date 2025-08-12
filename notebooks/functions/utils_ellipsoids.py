@@ -61,7 +61,7 @@ def _calculate_lambda(x, y, z, a, b, c):
 
     theta = np.arccos(theta_internal_1)
 
-    lmbda = 2 * np.sqrt((-p / 3)) * np.cos(theta / 3) - p_2 / 3
+    lmbda = 2 * np.sqrt(-p / 3) * np.cos(theta / 3) - p_2 / 3
 
     # lmbda[inside_mask] = 0
 
@@ -125,7 +125,7 @@ def _global_to_local(northing, easting, extra_coords, depth, v):
                                                      `vd.grid_coordinates`).
 
     depth : float
-        Depth of the ellipsoid’s center below the surface (positive downward).
+        Depth of the ellipsoid's center below the surface (positive downward).
 
     V : ndarray of shape (3, 3)
         Rotation matrix used to transform from global to local coordinates.
