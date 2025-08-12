@@ -53,5 +53,8 @@ jobs:
       - name: List installed packages
         run: python -m pip freeze
 
+      - name: Check format
+        run: ruff format --check notebooks/functions
+
       - name: Check style
         run: ruff check notebooks/functions
