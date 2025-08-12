@@ -114,9 +114,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
 
         # preserve ellipsoid shape, translate origin of ellipsoid
         cast = np.broadcast(e, n, u)
-        obs_points = np.vstack(
-            ((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel())
-        )
+        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
 
         # create rotation matrix
         r = _get_v_as_euler(yaw, pitch, roll)
@@ -129,9 +127,7 @@ def ellipsoid_gravity(coordinates, ellipsoids, density, field="g"):
         internal_mask = (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2) < 1
 
         # calculate gravity component for the rotated points
-        gx, gy, gz = _get_gravity_array(
-            internal_mask, a, b, c, x, y, z, density
-        )
+        gx, gy, gz = _get_gravity_array(internal_mask, a, b, c, x, y, z, density)
         gravity = np.vstack((gx.ravel(), gy.ravel(), gz.ravel()))
 
         # project onto upward unit vector, axis U
@@ -190,9 +186,9 @@ def _get_abc(a, b, c, lmbda):
     # compute terms associated with B(lambda)
     b_coeff = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
     b_fk_coeff = (b**2 - c**2) / (a**2 - c**2)
-    b_fk_subtracted_term = (
-        k**2 * np.sin(theta_prime) * np.cos(theta_prime)
-    ) / np.sqrt(1 - k**2 * np.sin(theta_prime) ** 2)
+    b_fk_subtracted_term = (k**2 * np.sin(theta_prime) * np.cos(theta_prime)) / np.sqrt(
+        1 - k**2 * np.sin(theta_prime) ** 2
+    )
     b_lmbda = b_coeff * (
         ellipeinc(theta_prime, k)
         - b_fk_coeff * ellipkinc(theta_prime, k)
@@ -203,9 +199,7 @@ def _get_abc(a, b, c, lmbda):
     c_coeff = 2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
     c_ek_subtracted_term = (
         np.sin(theta_prime) * np.sqrt(1 - k**2 * np.sin(theta_prime) ** 2)
-    ) / np.cos(
-        theta_prime
-    )  # check the brackets here ??
+    ) / np.cos(theta_prime)  # check the brackets here ??
     c_lmbda = c_coeff * (c_ek_subtracted_term - ellipeinc(theta_prime, k))
 
     return a_lmbda, b_lmbda, c_lmbda
@@ -394,17 +388,14 @@ def _get_gravity_prolate(x, y, z, a, b, c, density, lmbda=None):
 
     # compute repeated log_e term
     log_term = np.log(
-        ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5)
-        / ((b**2 + lmbda) ** 0.5)
+        ((a**2 - b**2) ** 0.5 + (a**2 + lmbda) ** 0.5) / ((b**2 + lmbda) ** 0.5)
     )
 
     # compute repeated f_2 second term
     f_2_term_2 = (((a**2 - b**2) * (a**2 + lmbda)) ** 0.5) / (b**2 + lmbda)
 
     # compile terms
-    dg1 = (
-        4 * co_eff1 * x * (((a**2 - b**2) / (a**2 + lmbda)) ** 0.5 - log_term)
-    )
+    dg1 = 4 * co_eff1 * x * (((a**2 - b**2) / (a**2 + lmbda)) ** 0.5 - log_term)
     dg2 = 2 * co_eff1 * y * (log_term - f_2_term_2)
     dg3 = 2 * co_eff1 * z * (log_term - f_2_term_2)
 

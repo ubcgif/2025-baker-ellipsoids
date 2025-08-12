@@ -119,16 +119,11 @@ def ellipsoid_magnetics(
 
     # unpack external field, change to vector
     magnitude, inclination, declination = external_field
-    b0 = np.array(
-        hm.magnetic_angles_to_vec(magnitude, inclination, declination)
-    )
+    b0 = np.array(hm.magnetic_angles_to_vec(magnitude, inclination, declination))
     h0 = b0 * 1e-9 / mu_0
 
     # loop over each given ellipsoid
-    for ellipsoid, susceptibility in zip(
-        ellipsoids, susceptibility, strict=True
-    ):
-
+    for ellipsoid, susceptibility in zip(ellipsoids, susceptibility, strict=True):
         k_matrix = check_susceptibility(susceptibility)
 
         a, b, c = ellipsoid.a, ellipsoid.b, ellipsoid.c
@@ -136,17 +131,13 @@ def ellipsoid_magnetics(
         yaw, pitch, roll = ellipsoid.yaw, ellipsoid.pitch, ellipsoid.roll
 
         cast = np.broadcast(e, n, u)
-        obs_points = np.vstack(
-            ((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel())
-        )
+        obs_points = np.vstack(((e - ox).ravel(), (n - oy).ravel(), (u - oz).ravel()))
         r = _get_v_as_euler(yaw, pitch, roll)
         rotated = r.T @ obs_points
         x, y, z = [axis.reshape(cast.shape).ravel() for axis in rotated]
 
         lmbda = _calculate_lambda(x, y, z, a, b, c).ravel()
-        internal_mask = (
-            (x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)
-        ) < 1
+        internal_mask = ((x**2) / (a**2) + (y**2) / (b**2) + (z**2) / (c**2)) < 1
 
         h0_rot = r.T @ h0
         m = _get_magnetisation(a, b, c, k_matrix, h0_rot)
@@ -159,7 +150,6 @@ def ellipsoid_magnetics(
             is_internal = internal_mask[idx]
 
             if is_internal:
-
                 hr = (-n_cross + np.identity(3)) @ m
 
                 hr = r @ hr
@@ -168,7 +158,6 @@ def ellipsoid_magnetics(
                 bu[idx] += 1e9 * mu_0 * hr[2]
 
             else:
-
                 nr = _construct_n_matrix_external(xi, yi, zi, a, b, c, lam)
 
                 hr = nr @ m
@@ -259,9 +248,7 @@ def check_susceptibility(susceptibility):
             )
         k_matrix = k_array
     else:
-        raise ValueError(
-            f"Unrecognized susceptibility type: {type(susceptibility)}"
-        )
+        raise ValueError(f"Unrecognized susceptibility type: {type(susceptibility)}")
 
     return k_matrix
 
@@ -293,13 +280,12 @@ def _depol_triaxial_int(a, b, c):
     )
     nyy = (
         -1 * nxx
-        + ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2)))
-        * ellipeinc(phi, k)
+        + ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) * ellipeinc(phi, k)
         - c**2 / (b**2 - c**2)
     )
-    nzz = -1 * (
-        (a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))
-    ) * ellipeinc(phi, k) + b**2 / (b**2 - c**2)
+    nzz = -1 * ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) * ellipeinc(
+        phi, k
+    ) + b**2 / (b**2 - c**2)
 
     np.testing.assert_allclose((nxx + nyy + nzz), 1, rtol=1e-4)
     return nxx, nyy, nzz
@@ -394,9 +380,7 @@ def _construct_n_matrix_internal(a, b, c):
     elif a < b and b == c:
         func = _depol_oblate_int(a, b, c)
     else:
-        raise ValueError(
-            "Could not determine ellipsoid type for" " values given."
-        )
+        raise ValueError("Could not determine ellipsoid type for values given.")
     # construct identity matrix
     n = np.diag(func)
 
@@ -508,23 +492,19 @@ def _get_g_values_magnetics(a, b, c, lmbda):
             ellipkinc(phi, k) - ellipeinc(phi, k)
         )
 
-        g2_multiplier = (2 * np.sqrt(a**2 - c**2)) / (
-            (a**2 - b**2) * (b**2 - c**2)
+        g2_multiplier = (2 * np.sqrt(a**2 - c**2)) / ((a**2 - b**2) * (b**2 - c**2))
+        g2_elliptics = ellipeinc(phi, k) - ((b**2 - c**2) / (a**2 - c**2)) * ellipkinc(
+            phi, k
         )
-        g2_elliptics = ellipeinc(phi, k) - (
-            (b**2 - c**2) / (a**2 - c**2)
-        ) * ellipkinc(phi, k)
-        g2_last_term = (
-            (a**2 - b**2) / np.sqrt(a**2 - c**2)
-        ) * np.sqrt((c**2 + lmbda) / ((a**2 + lmbda) * (b**2 + lmbda)))
+        g2_last_term = ((a**2 - b**2) / np.sqrt(a**2 - c**2)) * np.sqrt(
+            (c**2 + lmbda) / ((a**2 + lmbda) * (b**2 + lmbda))
+        )
 
         g2 = g2_multiplier * (g2_elliptics - g2_last_term)
 
-        # Term with the E(k, theta) must have a minus sign 
+        # Term with the E(k, theta) must have a minus sign
         # (the minus sign is missing in Takahashi (2018)).
-        g3_term_1 = -(
-            2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
-        ) * ellipeinc(phi, k)
+        g3_term_1 = -(2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))) * ellipeinc(phi, k)
         g3_term_2 = (2 / (b**2 - c**2)) * np.sqrt(
             (b**2 + lmbda) / ((a**2 + lmbda) * (c**2 + lmbda))
         )
@@ -545,8 +525,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         # Equation (39): g2 = g3
         g2 = (1 / (e2 ** (3 / 2))) * (
-            (sqrt_e * sqrt_l1) / (b**2 + lmbda)
-            - np.log((sqrt_e + sqrt_l1) / sqrt_l2)
+            (sqrt_e * sqrt_l1) / (b**2 + lmbda) - np.log((sqrt_e + sqrt_l1) / sqrt_l2)
         )
         gvals_x, gvals_y, gvals_z = g1, g2, g2
 
@@ -617,11 +596,7 @@ def _construct_n_matrix_external(x, y, z, a, b, c, lmbda):
                     * (derivs_lmbda[i] * h_vals[i] * r[i] + gvals[i])
                 )
             else:
-                n[i][j] = (
-                    -1
-                    * ((a * b * c) / 2)
-                    * (derivs_lmbda[i] * h_vals[j] * r[j])
-                )
+                n[i][j] = -1 * ((a * b * c) / 2) * (derivs_lmbda[i] * h_vals[j] * r[j])
 
     trace_terms = []
     for i in range(3):
