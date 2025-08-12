@@ -290,7 +290,7 @@ def _depol_triaxial_int(a, b, c):
     return nxx, nyy, nzz
 
 
-def _depol_prolate_int(a, b, c):
+def _depol_prolate_int(a, b, c): # noqa: ARG001
     """
     Calcualte internal depolarisation factors for prolate case.
 
@@ -326,7 +326,7 @@ def _depol_prolate_int(a, b, c):
     return nxx, nyy, nzz
 
 
-def _depol_oblate_int(a, b, c):
+def _depol_oblate_int(a, b, c): # noqa: ARG001
     """
     Calcualte internal depolarisation factors for oblate case.
 
