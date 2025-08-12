@@ -1,6 +1,6 @@
-import pytest
 import harmonica as hm
 import numpy as np
+import pytest
 import verde as vd
 from scipy.constants import mu_0
 
@@ -17,9 +17,9 @@ from .ellipsoid_magnetics import (
     ellipsoid_magnetics,
 )
 from .utils_ellipsoids import (
+    _get_sphere_magnetization,
     _get_v_as_euler,
     _sphere_magnetic,
-    _get_sphere_magnetization,
 )
 
 

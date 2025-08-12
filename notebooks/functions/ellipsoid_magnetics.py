@@ -372,7 +372,7 @@ def _construct_n_matrix_internal(a, b, c):
 
     # only diagonal elements
     # Nii corresponds to the above functions
-    if a > b and b > c:
+    if a > b > c:
         func = _depol_triaxial_int(a, b, c)
     elif a > b and b == c:
         func = _depol_prolate_int(a, b, c)
