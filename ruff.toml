@@ -36,3 +36,7 @@ ignore = [
   # Notebook specific
   "B018"      # allow unused expression (prints on notebooks)
 ]
+
+exclude = [
+    "_void_functions.py"
+]
