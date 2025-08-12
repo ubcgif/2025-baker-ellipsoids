@@ -10,7 +10,6 @@ import numpy as np
 from scipy.constants import mu_0
 from scipy.special import ellipeinc, ellipkinc
 
-from .ellipsoid_gravity import _get_abc
 from .utils_ellipsoids import _calculate_lambda, _get_v_as_euler
 
 
