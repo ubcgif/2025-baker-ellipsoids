@@ -6,3 +6,4 @@ verde
 matplotlib
 numba
 pytest
+ruff

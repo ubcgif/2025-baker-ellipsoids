@@ -1,6 +1,6 @@
-import pytest
 import harmonica as hm
 import numpy as np
+import pytest
 import verde as vd
 from scipy.constants import mu_0
 
@@ -17,9 +17,9 @@ from .ellipsoid_magnetics import (
     ellipsoid_magnetics,
 )
 from .utils_ellipsoids import (
+    _get_sphere_magnetization,
     _get_v_as_euler,
     _sphere_magnetic,
-    _get_sphere_magnetization,
 )
 
 
@@ -41,29 +41,24 @@ def test_likeness_to_sphere():
     coordinates = tuple(np.atleast_2d(c) for c in (easting, northing, upward))
 
     # create ellipsoids
-    pro_ellipsoid = ProlateEllipsoid(
-        a=60, b=59.99, yaw=0, pitch=0, centre=(0, 0, 0)
-    )
+    pro_ellipsoid = ProlateEllipsoid(a=60, b=59.99, yaw=0, pitch=0, centre=(0, 0, 0))
     tri_ellipsoid = TriaxialEllipsoid(
         a=60, b=59.999, c=59.998, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
     )
-    obl_ellipsoid = OblateEllipsoid(
-        a=59.99, b=60, yaw=0, pitch=0, centre=(0, 0, 0)
-    )
+    obl_ellipsoid = OblateEllipsoid(a=59.99, b=60, yaw=0, pitch=0, centre=(0, 0, 0))
 
-    for indx, k in enumerate(k):
-
+    for indx, k_i in enumerate(k):
         # ellipsoids
         be_pro, _, _ = ellipsoid_magnetics(
-            coordinates, pro_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
+            coordinates, pro_ellipsoid, k_i, (55_000, 0.0, 90.0), field="b"
         )
         be_pro = be_pro.ravel()
         be_tri, _, _ = ellipsoid_magnetics(
-            coordinates, tri_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
+            coordinates, tri_ellipsoid, k_i, (55_000, 0.0, 90.0), field="b"
         )
         be_tri = be_tri.ravel()
         be_obl, _, _ = ellipsoid_magnetics(
-            coordinates, obl_ellipsoid, k, (55_000, 0.0, 90.0), field="b"
+            coordinates, obl_ellipsoid, k_i, (55_000, 0.0, 90.0), field="b"
         )
         be_obl = be_obl.ravel()
 
@@ -314,15 +309,11 @@ def test_euler_rotation_symmetry_mag():
             np.testing.assert_allclose(np.abs(bu), np.abs(base_bu), rtol=1e-4)
 
     # triaxial cases
-    base_tri = TriaxialEllipsoid(
-        a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0)
-    )
+    base_tri = TriaxialEllipsoid(a, b, c, yaw=0, pitch=0, roll=0, centre=(0, 0, 0))
     tri_rotated = [
         TriaxialEllipsoid(a, b, c, yaw=360, pitch=0, roll=0, centre=(0, 0, 0)),
         TriaxialEllipsoid(a, b, c, yaw=0, pitch=180, roll=0, centre=(0, 0, 0)),
-        TriaxialEllipsoid(
-            a, b, c, yaw=0, pitch=360, roll=360, centre=(0, 0, 0)
-        ),
+        TriaxialEllipsoid(a, b, c, yaw=0, pitch=360, roll=360, centre=(0, 0, 0)),
     ]
     check_rotation_equivalence(base_tri, tri_rotated)
 
@@ -489,6 +480,7 @@ class TestMagnetizationVersusSphere:
         np.testing.assert_allclose(
             magnetization_ellipsoid, magnetization_sphere, rtol=rtol
         )
+
 
 class TestMagneticFieldVersusSphere:
     """

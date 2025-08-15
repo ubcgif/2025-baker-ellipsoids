@@ -20,3 +20,22 @@ from .utils_ellipsoids import (
     _global_to_local,
     _sphere_magnetic,
 )
+
+__all__ = [
+    "OblateEllipsoid",
+    "ProlateEllipsoid",
+    "TriaxialEllipsoid",
+    "_calculate_lambda",
+    "_generate_basic_ellipsoid",
+    "_get_abc",
+    "_get_gravity_array",
+    "_get_gravity_oblate",
+    "_get_gravity_prolate",
+    "_get_gravity_triaxial",
+    "_get_internal_g",
+    "_get_v_as_euler",
+    "_global_to_local",
+    "_sphere_magnetic",
+    "ellipsoid_gravity",
+    "ellipsoid_magnetics",
+]
