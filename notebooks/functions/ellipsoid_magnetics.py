@@ -204,37 +204,6 @@ def ellipsoid_magnetics(
     return {"e": be, "n": bn, "u": bu}.get(field, (be, bn, bu))
 
 
-def _get_magnetisation(a, b, c, k, h0, r):
-    """
-    Get the magnetization vector from the ellipsoid parameters and the rotated
-    external field, excluding remnant mag.
-
-    parameters
-    ----------
-    a, b, c : floats
-        Semiaxis lengths of the ellipsoid.
-
-    k: float, matrix
-        Susceptabiity value/s (float for isotropic or matrix for anisotropic)
-
-    h0: array
-        the rotated background field (local coordinates).
-
-    returns
-    -------
-    m (magentisation): array
-        the magnetisation vector for the define body.
-
-    """
-
-    n_cross = _construct_n_matrix_internal(a, b, c)
-    inv = np.linalg.inv(np.identity(3) - (n_cross @ k))
-    m_local = k @ inv @ h0
-    m = r @ m_local
-
-    return m
-
-
 def _get_magnetisation_with_rem(a, b, c, k, h0, mr, r):
     """
     Get the magnetization vector from the ellipsoid parameters and the rotated
