@@ -16,8 +16,8 @@ from .utils_ellipsoids import _calculate_lambda, _get_v_as_euler
 
 # internal field N matrix functions
 def ellipsoid_magnetics(
-    coordinates, ellipsoids, susceptibility, external_field, 
-    remanent_mag=None, field="b"
+    coordinates, ellipsoids, susceptibility, external_field,
+    remnant_mag=None, field="b"
 ):
     """
     Produces the components for the magnetic field components (be, bn, bu):
@@ -68,8 +68,8 @@ def ellipsoid_magnetics(
     external_field : ndarray
         The uniform magnetic field as and array with values of
         (magnitude, inclination, declination).
-    
-    remanent_mag:  (optional) array
+
+    remnant_mag:  (optional) array
         Remanent magnetisation vector of the body. Default is None.
 
     field : (optional) str, one of either "e", "n", "u".
@@ -104,8 +104,8 @@ def ellipsoid_magnetics(
     if not isinstance(susceptibility, Iterable):
         susceptibility = [susceptibility]
 
-    if remanent_mag is not None:
-        mr = np.asarray(remanent_mag, dtype=float)
+    if remnant_mag is not None:
+        mr = np.asarray(remnant_mag, dtype=float)
 
         if mr.ndim == 1 and mr.size == 3:
             mr = np.tile(mr, (len(ellipsoids), 1))
@@ -113,7 +113,7 @@ def ellipsoid_magnetics(
         if mr.shape != (len(ellipsoids), 3):
             raise ValueError(f"Remanent magnetisation must have shape "
                              f"({len(ellipsoids)}, 3); got {mr.shape}.")
-    if remanent_mag is None:
+    if remnant_mag is None:
         mr = np.zeros((len(ellipsoids), 3))
 
     if not isinstance(external_field, Iterable) and len(external_field) != 3:
