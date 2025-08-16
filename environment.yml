@@ -11,5 +11,10 @@ dependencies:
   - ruff
   - pytest
   # Scientific stack
-  - numpy
+  - numpy==2.2.*
   - scipy
+  - harmonica
+  - choclo
+  - verde
+  - matplotlib
+  - numba==0.61.*

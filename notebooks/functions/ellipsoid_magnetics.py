@@ -66,8 +66,9 @@ def ellipsoid_magnetics(
         anisotropic susceptibility.
 
     external_field : ndarray
-        The uniform magnetic field as and array with values of
-        (magnitude, inclination, declination).
+        The uniform magnetic field (B) as and array with values of
+        (magnitude, inclination, declination). The magnitude should be in nT, and the
+        angles in degrees.
 
     remnant_mag:  (optional) array
         Remanent magnetisation vector of the body. Default is None.
@@ -92,7 +93,7 @@ def ellipsoid_magnetics(
     ----------
     Clark, S. A., et al. (1986), "Magnetic and gravity anomalies of a trixial
     ellipsoid"
-    Takenhasi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
+    Takahashi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
 
     For derivations of the equations and methods used in this code.
     """
@@ -538,7 +539,9 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         g2 = g2_multiplier * (g2_elliptics - g2_last_term)
 
-        g3_term_1 = (
+        # Term with the E(k, theta) must have a minus sign 
+        # (the minus sign is missing in Takahashi (2018)).
+        g3_term_1 = -(
             2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
         ) * ellipeinc(phi, k)
         g3_term_2 = (2 / (b**2 - c**2)) * np.sqrt(
@@ -561,7 +564,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         # Equation (39): g2 = g3
         g2 = (1 / (e2 ** (3 / 2))) * (
-            (e2 * sqrt_l1) / (b**2 + lmbda)
+            (sqrt_e * sqrt_l1) / (b**2 + lmbda)
             - np.log((sqrt_e + sqrt_l1) / sqrt_l2)
         )
         gvals_x, gvals_y, gvals_z = g1, g2, g2
