@@ -4,7 +4,7 @@ from .create_ellipsoid import (
     TriaxialEllipsoid,
 )
 from .ellipsoid_gravity import (
-    _get_abc,
+    _get_g_values,
     _get_gravity_array,
     _get_gravity_oblate,
     _get_gravity_prolate,
