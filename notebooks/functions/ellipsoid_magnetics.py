@@ -167,7 +167,7 @@ def ellipsoid_magnetics(
 
         h0_rot = r.T @ h0
 
-        m = _get_magnetisation_with_rem(a, b, c, k_matrix, h0_rot, m_r, r)
+        m = _get_magnetisation_with_rem(a, b, c, k_matrix, h0_rot, m_r)
 
         n_cross = _construct_n_matrix_internal(a, b, c)
 
