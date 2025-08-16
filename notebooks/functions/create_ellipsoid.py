@@ -1,5 +1,19 @@
 # definitions of ellipsoid classes to pass into the functions
 
+def get_ellipsoid_geometry(a, b, c, yaw, pitch, roll, centre):
+    
+    if a > b > c:
+        return TriaxialEllipsoid(a, b, c, yaw, pitch, roll, centre)
+    
+    if a > b and b == c:
+        return ProlateEllipsoid(a, b, yaw, pitch, centre)
+    
+    if a < b and b == c:
+        return OblateEllipsoid(a, b, yaw, pitch, centre)
+        
+    if a == b and b == c:
+        ...
+    ...
 
 class TriaxialEllipsoid:
     """
