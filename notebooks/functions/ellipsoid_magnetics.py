@@ -66,12 +66,11 @@ def ellipsoid_magnetics(
         anisotropic susceptibility.
 
     external_field : ndarray
-        The uniform magnetic field (B) as and array with values of
-        (magnitude, inclination, declination). The magnitude should be in nT, and the
-        angles in degrees.
+        The uniform magnetic field as and array with values of
+        (magnitude, inclination, declination).
 
     remnant_mag:  (optional) array
-        Remanent magnetisation vector of the body. Default is None.
+        Remnent magnetisation vector of the body. Default is None.
 
     field : (optional) str, one of either "e", "n", "u".
         if no input is given, the function will return all three components of
@@ -93,7 +92,7 @@ def ellipsoid_magnetics(
     ----------
     Clark, S. A., et al. (1986), "Magnetic and gravity anomalies of a trixial
     ellipsoid"
-    Takahashi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
+    Takenhasi, Y., et al. (2018), "Magentic modelling of ellipsoidal bodies"
 
     For derivations of the equations and methods used in this code.
     """
@@ -204,48 +203,67 @@ def ellipsoid_magnetics(
     # return according to user
     return {"e": be, "n": bn, "u": bu}.get(field, (be, bn, bu))
 
-def _get_magnetisation_with_rem(a, b, c, k, h0, mr):
-    r"""
+
+def _get_magnetisation(a, b, c, k, h0, r):
+    """
+    Get the magnetization vector from the ellipsoid parameters and the rotated
+    external field, excluding remnant mag.
+
+    parameters
+    ----------
+    a, b, c : floats
+        Semiaxis lengths of the ellipsoid.
+
+    k: float, matrix
+        Susceptabiity value/s (float for isotropic or matrix for anisotropic)
+
+    h0: array
+        the rotated background field (local coordinates).
+
+    returns
+    -------
+    m (magentisation): array
+        the magnetisation vector for the define body.
+
+    """
+
+    n_cross = _construct_n_matrix_internal(a, b, c)
+    inv = np.linalg.inv(np.identity(3) - (n_cross @ k))
+    m_local = k @ inv @ h0
+    m = r @ m_local
+
+    return m
+
+
+def _get_magnetisation_with_rem(a, b, c, k, h0, mr, r):
+    """
     Get the magnetization vector from the ellipsoid parameters and the rotated
     external field.
 
-    Parameters
+    parameters
     ----------
     a, b, c : floats
-        Semi-axes lengths of the ellipsoid.
-    k : (3, 3) array
-        Susceptibility tensor.
-    h0: array
-        The rotated background field (in local coordinates).
+        Semiaxis lengths of the ellipsoid.
 
-    Returns
+    k: float, matrix
+        Susceptabiity value/s (float for isotropic or matrix for anisotropic)
+
+    h0: array
+        the rotated background field (local coordinates).
+
+    mr: array
+        remanent magnetisation vector.
+
+    returns
     -------
     m (magentisation): array
-        The magnetisation vector for the defined body.
+        the magnetisation vector for the define body.
 
-    Notes
-    -----
-    Considering an ellipsoid with susceptibility :math:`\chi` (scalar or tensor) in
-    a uniform background field :math:`\mathbf{H}_0`, compute the magnetization vector
-    :math:`\mathbf{M}` of the ellipsoid accounting for demagnetization effects as:
-
-    .. math::
-
-        \mathbf{M} =
-        \chi \[left \mathbf{I} + \mathbf{N}^\text{int} \chi \right]^{-1} \mathbf{H}_0,
-
-    where :math:`\mathbf{N}^\text{int}` is the internal demagnetization tensor, defined
-    as:
-
-    .. math::
-
-        \mathbf{H}(\mathbf{r}) = \mathbf{H}_0 - \mathbf{N}(\mathbf{r}) \mathbf{M}.
     """
     n_cross = _construct_n_matrix_internal(a, b, c)
-    I = np.identity(3)
-    A = I + n_cross @ k
-    rhs = mr + k @ h0
-    m = np.linalg.solve(A, rhs)
+    inv = np.linalg.inv(np.identity(3) - (k @ n_cross))
+    u = r @ inv
+    m = u @ (k @ h0 + mr)
     return m
 
 
@@ -539,9 +557,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         g2 = g2_multiplier * (g2_elliptics - g2_last_term)
 
-        # Term with the E(k, theta) must have a minus sign 
-        # (the minus sign is missing in Takahashi (2018)).
-        g3_term_1 = -(
+        g3_term_1 = (
             2 / ((b**2 - c**2) * np.sqrt(a**2 - c**2))
         ) * ellipeinc(phi, k)
         g3_term_2 = (2 / (b**2 - c**2)) * np.sqrt(
@@ -564,7 +580,7 @@ def _get_g_values_magnetics(a, b, c, lmbda):
 
         # Equation (39): g2 = g3
         g2 = (1 / (e2 ** (3 / 2))) * (
-            (sqrt_e * sqrt_l1) / (b**2 + lmbda)
+            (e2 * sqrt_l1) / (b**2 + lmbda)
             - np.log((sqrt_e + sqrt_l1) / sqrt_l2)
         )
         gvals_x, gvals_y, gvals_z = g1, g2, g2
