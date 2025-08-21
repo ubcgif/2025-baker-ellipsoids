@@ -28,11 +28,11 @@ def ellipsoid_magnetics(
         - Constructs Euler rotation matrix
         - Rotates observation points (e, n, u) into local ellipsoid system
           (x, y, z)
-        - constructs susceptability matrix and depolarisation matrix for
+        - constructs susceptibility matrix and depolarisation matrix for
           internal
           and external points of observation
-        - Calculates the magentic field due to the magnetised ellipsoid (H())
-        - Converts this to magentic induction (B()) in nT.
+        - Calculates the magnetic field due to the magnetised ellipsoid (H())
+        - Converts this to magnetic induction (B()) in nT.
 
     Parameters
     ----------
@@ -218,10 +218,12 @@ def _get_magnetisation_with_rem(a, b, c, k, h0, mr):
         Susceptibility tensor.
     h0: array
         The rotated background field (in local coordinates).
+    mr : (3) array
+        Remnant magnetisation vector.
 
     Returns
     -------
-    m (magentisation): array
+    m (magnetisation): array
         The magnetisation vector for the defined body.
 
     Notes
@@ -258,7 +260,7 @@ def check_susceptibility(susceptibility):
     ----------
 
     susceptibility : list of floats or arrays
-        Susceptibilty value. A single value or list of single values assumes
+        Susceptibility value. A single value or list of single values assumes
         isotropy in the body/bodies. An array or list of arrays should be a 3x3
         matrix with the given susceptibilty components, suggesting an
         anisotropic susceptibility.
