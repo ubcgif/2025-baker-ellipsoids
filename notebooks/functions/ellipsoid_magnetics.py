@@ -106,17 +106,19 @@ def ellipsoid_magnetics(
     if not isinstance(susceptibility, Iterable):
         susceptibility = [susceptibility]
 
-    if remnant_mag is not None:
+    if remnant_mag is None:
+        mr = np.zeros((len(ellipsoids), 3))
+    else:
         mr = np.asarray(remnant_mag, dtype=float)
 
         if mr.ndim == 1 and mr.size == 3:
             mr = np.tile(mr, (len(ellipsoids), 1))
 
         if mr.shape != (len(ellipsoids), 3):
-            raise ValueError(f"Remanent magnetisation must have shape "
-                             f"({len(ellipsoids)}, 3); got {mr.shape}.")
-    if remnant_mag is None:
-        mr = np.zeros((len(ellipsoids), 3))
+            raise ValueError(
+                f"Remanent magnetisation must have shape "
+                f"({len(ellipsoids)}, 3); got {mr.shape}."
+            )
 
     if not isinstance(external_field, Iterable) and len(external_field) != 3:
         raise ValueError(
