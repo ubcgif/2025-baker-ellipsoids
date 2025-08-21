@@ -306,20 +306,21 @@ def _depol_triaxial_int(a, b, c):
     phi = np.arccos(c / a)
     k = (a**2 - b**2) / (a**2 - c**2)
 
+    # Compute elliptical integrals
+    ellipk = ellipkinc(phi, k)
+    ellipe = ellipeinc(phi, k)
+
     nxx = (
-        (a * b * c)
-        / (np.sqrt(a**2 - c**2) * (a**2 - b**2))
-        * (ellipkinc(phi, k) - ellipeinc(phi, k))
+        (a * b * c) / (np.sqrt(a**2 - c**2) * (a**2 - b**2)) * (ellipk - ellipe)
     )
     nyy = (
         -1 * nxx
-        + ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2)))
-        * ellipeinc(phi, k)
+        + ((a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))) * ellipe
         - c**2 / (b**2 - c**2)
     )
     nzz = -1 * (
         (a * b * c) / (np.sqrt(a**2 - c**2) * (b**2 - c**2))
-    ) * ellipeinc(phi, k) + b**2 / (b**2 - c**2)
+    ) * ellipe + b**2 / (b**2 - c**2)
 
     np.testing.assert_allclose((nxx + nyy + nzz), 1, rtol=1e-4)
     return nxx, nyy, nzz
