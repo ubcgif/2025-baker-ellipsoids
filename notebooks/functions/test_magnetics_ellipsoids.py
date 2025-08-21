@@ -13,7 +13,7 @@ from .ellipsoid_magnetics import (
     _depol_oblate_int,
     _depol_prolate_int,
     _depol_triaxial_int,
-    _get_magnetisation,
+    _get_magnetisation_with_rem,
     ellipsoid_magnetics,
 )
 from .utils_ellipsoids import (
@@ -358,7 +358,7 @@ def test_internal_depol_equals_1():
 
 class TestDemagnetizationEffects:
     """
-    Test the ``_get_magnetisation`` function.
+    Test demagnetization effects in the ``_get_magnetisation_with_rem`` function.
     """
 
     @pytest.fixture(params=("oblate", "prolate", "triaxial"))
@@ -390,8 +390,10 @@ class TestDemagnetizationEffects:
         susceptibility = 0.5
         susceptibility_tensor = susceptibility * np.identity(3)
 
-        # Compute magnetization considering demagnetization effect
-        magnetization = _get_magnetisation(a, b, c, susceptibility_tensor, h0_field)
+        # Compute magnetization considering demagnetization effect (no remanence)
+        magnetization = _get_magnetisation_with_rem(
+            a, b, c, susceptibility_tensor, h0_field, mr=(0, 0, 0)
+        )
 
         # Compute magnetization without considering demagnetization effect
         magnetization_no_demag = susceptibility * h0_field
@@ -479,7 +481,9 @@ class TestMagnetizationVersusSphere:
         # Compute magnetizations
         a, b, c = ellipsoid_semiaxes
         k_matrix = susceptibility * np.identity(3)
-        magnetization_ellipsoid = _get_magnetisation(a, b, c, k_matrix, h0_field)
+        magnetization_ellipsoid = _get_magnetisation_with_rem(
+            a, b, c, k_matrix, h0_field, mr=(0, 0, 0)
+        )
         magnetization_sphere = _get_sphere_magnetization(
             susceptibility, (intensity, inclination, declination)
         )
